@@ -3,134 +3,100 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scanner Even3 - Ler Eventos</title>
+  <title>Organizador de Eventos Even3</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f4f6f9;
-      color: #333;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 30px;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
     }
     h1 {
-      color: #0070f3;
+      text-align: center;
+      color: #333;
     }
     input {
-      width: 90%;
-      max-width: 600px;
-      padding: 10px;
-      font-size: 16px;
-      border: 2px solid #0070f3;
-      border-radius: 8px;
+      display: block;
+      margin: 20px auto;
     }
-    button {
-      margin-top: 10px;
-      padding: 10px 20px;
-      font-size: 16px;
-      border: none;
-      background: #0070f3;
-      color: white;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #0059b2;
-    }
-    .resultado {
-      margin-top: 30px;
-      width: 100%;
-      max-width: 800px;
-      background: white;
+    .evento {
+      background: #fff;
+      padding: 15px;
+      margin: 10px 0;
       border-radius: 10px;
-      padding: 20px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-    .sessao {
-      border-bottom: 1px solid #ddd;
-      padding: 10px 0;
-    }
-    .sessao:last-child {
-      border-bottom: none;
-    }
-    .erro {
-      color: red;
-      margin-top: 10px;
+    .evento strong {
+      color: #0077cc;
     }
   </style>
 </head>
 <body>
-  <h1>Scanner Even3</h1>
-  <p>Cole o link de sessões do Even3:</p>
-  <input id="url" type="text" placeholder="https://www.even3.com.br/participante/sessions/">
-  <button onclick="escanear()">🔍 Escanear Evento</button>
-  <div id="resultado" class="resultado" style="display:none;"></div>
-  <div id="erro" class="erro"></div>
+  <h1>Organizador de Eventos Even3</h1>
+  <p style="text-align:center;">Escolha um arquivo HTML ou JSON exportado do Even3:</p>
+  <input type="file" id="fileInput" accept=".html,.json">
+  <div id="resultados"></div>
 
   <script>
-  async function escanear() {
-    const url = document.getElementById('url').value.trim();
-    const resultadoDiv = document.getElementById('resultado');
-    const erroDiv = document.getElementById('erro');
-    resultadoDiv.style.display = 'none';
-    erroDiv.textContent = '';
+    document.getElementById('fileInput').addEventListener('change', function (event) {
+      const file = event.target.files[0];
+      if (!file) return;
 
-    if (!url.startsWith('http')) {
-      erroDiv.textContent = 'Por favor, insira um link válido do Even3.';
-      return;
-    }
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const content = e.target.result;
+        let eventos = [];
 
-    const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+        if (file.name.endsWith('.json')) {
+          try {
+            eventos = JSON.parse(content);
+          } catch {
+            alert('Arquivo JSON inválido!');
+            return;
+          }
+        } else {
+          // Se for HTML — tenta extrair as sessões
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(content, 'text/html');
 
-    try {
-      const res = await fetch(proxyUrl);
-      if (!res.ok) throw new Error('Falha ao acessar o proxy.');
-      const data = await res.json();
-      const html = data.contents;
+          const items = doc.querySelectorAll('[data-testid*="session-card"], .session');
+          items.forEach(item => {
+            const titulo = item.querySelector('h3, h2, .title')?.innerText || 'Sem título';
+            const data = item.querySelector('.date, [data-testid*="session-date"]')?.innerText || 'Data não informada';
+            const hora = item.querySelector('.time, [data-testid*="session-time"]')?.innerText || 'Hora não informada';
+            const local = item.querySelector('.location, [data-testid*="session-location"]')?.innerText || 'Local não informado';
+            const palestrante = item.querySelector('.speaker, [data-testid*="session-speaker"]')?.innerText || 'Sem palestrante';
 
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
-
-      // Pega título principal
-      const titulo = doc.querySelector('h1')?.textContent?.trim() || 'Título não encontrado';
-
-      // Tenta achar local e palestrante
-      const texto = doc.body.innerText;
-      const local = (texto.match(/(?:Local|Endereço|Localização)[:\s]*([^\n]+)/i)?.[1] || 'Local não informado').trim();
-      const palestrante = (texto.match(/(?:Palestrante|Ministrante|Convidado)[:\s]*([^\n]+)/i)?.[1] || 'Palestrante não informado').trim();
-
-      // Pega possíveis sessões (blocos com horário)
-      const sessoes = [];
-      const blocos = doc.querySelectorAll('div, section, article');
-      blocos.forEach(b => {
-        const t = b.innerText;
-        if (t.match(/\d{1,2}:\d{2}/) && t.length < 400) {
-          sessoes.push(t.replace(/\s+/g, ' ').trim());
+            eventos.push({ titulo, data, hora, local, palestrante });
+          });
         }
-      });
 
-      // Monta o HTML de resultado
-      let htmlFinal = `<h2>${titulo}</h2>`;
-      htmlFinal += `<p><b>Local:</b> ${local}</p>`;
-      htmlFinal += `<p><b>Palestrante:</b> ${palestrante}</p>`;
-      htmlFinal += `<h3>Sessões encontradas:</h3>`;
+        // Ordenar por data e hora (quando possível)
+        eventos.sort((a, b) => (a.data + a.hora).localeCompare(b.data + b.hora));
 
-      if (sessoes.length === 0) {
-        htmlFinal += `<p>Nenhuma sessão encontrada.</p>`;
-      } else {
-        sessoes.forEach(s => {
-          htmlFinal += `<div class="sessao">${s}</div>`;
+        // Mostrar
+        const container = document.getElementById('resultados');
+        container.innerHTML = '';
+        if (eventos.length === 0) {
+          container.innerHTML = '<p style="text-align:center;color:red;">Nenhum evento encontrado!</p>';
+          return;
+        }
+
+        eventos.forEach(ev => {
+          const div = document.createElement('div');
+          div.className = 'evento';
+          div.innerHTML = `
+            <strong>${ev.titulo}</strong><br>
+            📅 ${ev.data} — 🕒 ${ev.hora}<br>
+            📍 ${ev.local}<br>
+            🎤 ${ev.palestrante}
+          `;
+          container.appendChild(div);
         });
-      }
+      };
 
-      resultadoDiv.innerHTML = htmlFinal;
-      resultadoDiv.style.display = 'block';
-
-    } catch (err) {
-      erroDiv.textContent = 'Erro ao escanear o link: ' + err.message;
-    }
-  }
+      reader.readAsText(file);
+    });
   </script>
 </body>
 </html>
