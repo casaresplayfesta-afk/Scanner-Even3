@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema de Ponto Eletrônico</title>
 <style>
-body { font-family: Arial, sans-serif; background:#f5f5f5; padding:20px; }
+body { font-family: Arial; background:#f5f5f5; padding:20px; }
 .container { max-width:1200px; margin:auto; background:white; padding:20px; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1); }
 h1 { text-align:center; color:#333; margin-bottom:30px; }
 .button-group { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; }
@@ -58,7 +58,7 @@ input, select { width:100%; padding:10px; margin:5px 0; border-radius:4px; borde
     <span class="close" data-target="registrarPontoModal">&times;</span>
     <h2>Registrar Ponto</h2>
     <form id="registrarPontoForm">
-      <input type="text" id="colabNome" placeholder="Nome Completo" required>
+      <select id="selectColaborador" required></select>
       <select id="pontoTipo" required>
         <option value="">Selecione o Tipo</option>
         <option value="Entrada">Entrada</option>
@@ -87,16 +87,24 @@ input, select { width:100%; padding:10px; margin:5px 0; border-radius:4px; borde
 let registrosPonto = JSON.parse(localStorage.getItem('registrosPonto')) || [];
 let ultimoIdRegistro = registrosPonto.length>0?Math.max(...registrosPonto.map(r=>r.id)):0;
 
-function carregarRegistros() {
-  const tbody = document.getElementById('registrosBody');
+function carregarRegistros(){
+  const tbody=document.getElementById('registrosBody');
   tbody.innerHTML='';
   registrosPonto.forEach(r=>{
-    const row = document.createElement('tr');
+    const row=document.createElement('tr');
     row.innerHTML=`<td>${r.id}</td><td>${r.nome}</td><td>${new Date(r.dataHora).toLocaleString()}</td><td>${r.tipo}</td><td>${r.metodo}</td>`;
     tbody.appendChild(row);
   });
 }
 carregarRegistros();
+
+function carregarColaboradores(){
+  const select=document.getElementById('selectColaborador');
+  select.innerHTML='<option value="">Selecione o Colaborador</option>';
+  let colaboradores=JSON.parse(localStorage.getItem('colaboradores'))||[];
+  colaboradores.forEach(c=>{ if(!c.inativo) select.innerHTML+=`<option value="${c.nome}">${c.nome}</option>`; });
+}
+carregarColaboradores();
 
 // Modal lógica
 const registrarPontoBtn=document.getElementById('registrarPontoBtn');
@@ -104,46 +112,48 @@ const reconhecimentoBtn=document.getElementById('reconhecimentoBtn');
 const registrarPontoModal=document.getElementById('registrarPontoModal');
 const facialModal=document.getElementById('facialModal');
 const closeButtons=document.querySelectorAll('.close');
-registrarPontoBtn.onclick=()=>registrarPontoModal.style.display='block';
+registrarPontoBtn.onclick=()=>{ carregarColaboradores(); registrarPontoModal.style.display='block'; };
 reconhecimentoBtn.onclick=()=>{ iniciarCamera(); facialModal.style.display='block'; };
 closeButtons.forEach(btn=>btn.onclick=()=>{ const t=btn.dataset.target; if(t) document.getElementById(t).style.display='none'; pararCamera(); });
-window.onclick=e=>{ if(e.target.classList.contains('modal')) { e.target.style.display='none'; pararCamera(); } };
+window.onclick=e=>{ if(e.target.classList.contains('modal')){ e.target.style.display='none'; pararCamera(); } };
 
 // Registrar ponto manual
 document.getElementById('registrarPontoForm').addEventListener('submit', e=>{
   e.preventDefault();
-  const nome=document.getElementById('colabNome').value.trim();
+  const nome=document.getElementById('selectColaborador').value;
   const tipo=document.getElementById('pontoTipo').value;
+  if(!nome){ alert('Selecione um colaborador'); return; }
   ultimoIdRegistro++;
-  registrosPonto.push({ id:ultimoIdRegistro, nome, tipo, dataHora:new Date().toISOString(), metodo:'Manual' });
-  localStorage.setItem('registrosPonto', JSON.stringify(registrosPonto));
+  registrosPonto.push({id:ultimoIdRegistro,nome,tipo,dataHora:new Date().toISOString(),metodo:'Manual'});
+  localStorage.setItem('registrosPonto',JSON.stringify(registrosPonto));
   carregarRegistros();
   registrarPontoModal.style.display='none';
-  e.target.reset();
 });
 
 // Reconhecimento facial (simulado)
 let stream=null;
-function iniciarCamera() {
+function iniciarCamera(){
   const video=document.getElementById('video');
-  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { alert('Navegador não suporta câmera'); return; }
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ alert('Navegador não suporta câmera'); return; }
   navigator.mediaDevices.getUserMedia({video:true,audio:false}).then(s=>{stream=s; video.srcObject=stream;}).catch(err=>alert('Erro: '+err.message));
 }
 function pararCamera(){ if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } }
-
-document.getElementById('captureBtn').addEventListener('click', ()=>{
+document.getElementById('captureBtn').onclick=()=>{
   const video=document.getElementById('video');
   const canvas=document.getElementById('canvas');
   canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
-  const nome='Colaborador (Simulado)';
+  let colaboradores=JSON.parse(localStorage.getItem('colaboradores'))||[];
+  const ativos=colaboradores.filter(c=>!c.inativo);
+  if(ativos.length===0){ alert('Nenhum colaborador ativo'); return; }
+  const aleatorio=ativos[Math.floor(Math.random()*ativos.length)];
   const tipo=Math.random()>0.5?'Entrada':'Saída';
   ultimoIdRegistro++;
-  registrosPonto.push({ id:ultimoIdRegistro, nome, tipo, dataHora:new Date().toISOString(), metodo:'Reconhecimento Facial' });
-  localStorage.setItem('registrosPonto', JSON.stringify(registrosPonto));
+  registrosPonto.push({id:ultimoIdRegistro,nome:aleatorio.nome,tipo,dataHora:new Date().toISOString(),metodo:'Facial'});
+  localStorage.setItem('registrosPonto',JSON.stringify(registrosPonto));
   carregarRegistros();
-  document.getElementById('facialResult').textContent=`Ponto registrado para ${nome} (${tipo})`;
+  document.getElementById('facialResult').textContent=`Ponto registrado para ${aleatorio.nome} (${tipo})`;
   setTimeout(()=>{ facialModal.style.display='none'; pararCamera(); document.getElementById('facialResult').textContent=''; },2000);
-});
+};
 </script>
 </body>
 </html>
