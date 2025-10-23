@@ -24,34 +24,36 @@ tr:nth-child(even){background:#f9f9f9;}
 .close { float:right; font-size:28px; font-weight:bold; cursor:pointer;}
 .close:hover { color:black;}
 select,input,button { width:100%; margin:5px 0; padding:10px; border-radius:4px; border:1px solid #ccc; font-size:16px; }
+
+/* Tela de senha */
+#loginScreen {
+  position:fixed;
+  top:0; left:0; width:100%; height:100%;
+  background:#222; color:white;
+  display:flex; align-items:center; justify-content:center;
+  flex-direction:column; gap:10px;
+  z-index:9999;
+}
+#loginScreen input {
+  padding:10px; font-size:18px; border:none; border-radius:5px; text-align:center;
+}
+#loginScreen button {
+  background:#4CAF50; color:white; padding:10px 20px; border:none; border-radius:5px; font-size:18px;
+}
 </style>
 </head>
 <body>
 
-<!-- 🔐 Proteção com senha -->
-<script>
-(async () => {
-  // hash SHA-256 da senha "02072007"
-  const senhaCorretaHash = "fbe86c6922e1b4f2f06a50301a40113f5d5ea11aa7b9aaea418b9159b15e985e";
+<!-- Tela de senha -->
+<div id="loginScreen">
+  <h2>🔒 Acesso Restrito</h2>
+  <p>Digite a senha para entrar:</p>
+  <input type="password" id="senhaInput" placeholder="Senha">
+  <button onclick="verificarSenha()">Entrar</button>
+  <p id="erroSenha" style="color:red; display:none;">Senha incorreta!</p>
+</div>
 
-  async function gerarHash(texto) {
-    const msgUint8 = new TextEncoder().encode(texto);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", msgUint8);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-  }
-
-  const senha = prompt("Digite a senha para acessar o sistema:");
-  const hashDigitado = await gerarHash(senha);
-
-  if (hashDigitado !== senhaCorretaHash) {
-    document.body.innerHTML = "<h2 style='color:red;text-align:center;margin-top:20%;'>🔒 Acesso negado</h2>";
-    throw new Error("Acesso negado");
-  }
-})();
-</script>
-
-<div class="container">
+<div class="container" id="conteudo" style="display:none;">
 <h1>Sistema de Ponto Eletrônico</h1>
 
 <div class="button-group">
@@ -118,7 +120,22 @@ select,input,button { width:100%; margin:5px 0; padding:10px; border-radius:4px;
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script>
-// --- Dados ---
+// --- SISTEMA DE SENHA ---
+const SENHA_CORRETA = "02072007";
+
+function verificarSenha() {
+  const input = document.getElementById("senhaInput").value;
+  const erro = document.getElementById("erroSenha");
+
+  if (input === SENHA_CORRETA) {
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("conteudo").style.display = "block";
+  } else {
+    erro.style.display = "block";
+  }
+}
+
+// --- DADOS ---
 let colaboradores = JSON.parse(localStorage.getItem('colaboradores')) || [];
 let registros = JSON.parse(localStorage.getItem('registros')) || [];
 let ultimoIdColab = colaboradores.length>0 ? Math.max(...colaboradores.map(c=>c.id)) : 0;
@@ -135,7 +152,7 @@ const selectColabPonto = document.getElementById('selectColaboradorPonto');
 const modalTitle = document.getElementById('modalTitle');
 let tipoPonto = 'Entrada';
 
-// --- Funções ---
+// --- FUNÇÕES ---
 function salvarLocal() {
   localStorage.setItem('colaboradores', JSON.stringify(colaboradores));
   localStorage.setItem('registros', JSON.stringify(registros));
@@ -189,7 +206,7 @@ function carregarSelectColab(showAll=false) {
   });
 }
 
-// --- Botões ---
+// --- BOTÕES ---
 document.getElementById('addColabBtn').onclick = ()=>{
   modalTitle.textContent='Adicionar Colaborador';
   selectColab.style.display='none';
@@ -276,7 +293,6 @@ document.getElementById('pontoForm').addEventListener('submit', e=>{
 // Inicial
 renderColaboradores();
 renderRegistros();
-
 </script>
 </body>
 </html>
