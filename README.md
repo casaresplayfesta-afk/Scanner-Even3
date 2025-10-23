@@ -41,7 +41,7 @@ select,input,button { width:100%; margin:5px 0; padding:10px; border-radius:4px;
 
 <h2>Colaboradores</h2>
 <table id="colabTable">
-<thead><tr><th>ID</th><th>Nome</th><th>Matrícula</th><th>Cargo</th><th>Turno</th></tr></thead>
+<thead><tr><th>ID</th><th>Nome</th><th>Matrícula</th><th>Cargo</th><th>Turno</th><th>Ação</th></tr></thead>
 <tbody id="colabBody"></tbody>
 </table>
 
@@ -116,12 +116,34 @@ function salvarLocal() {
   localStorage.setItem('colaboradores', JSON.stringify(colaboradores));
   localStorage.setItem('registros', JSON.stringify(registros));
 }
+
 function renderColaboradores() {
-  colabBody.innerHTML='';
-  colaboradores.forEach(c=>{
-    if(!c.inativo) colabBody.innerHTML+=`<tr><td>${c.id}</td><td>${c.nome}</td><td>${c.matricula}</td><td>${c.cargo}</td><td>${c.turno}</td></tr>`;
+  colabBody.innerHTML = '';
+  colaboradores.forEach(c => {
+    if (!c.inativo) {
+      colabBody.innerHTML += `
+        <tr>
+          <td>${c.id}</td>
+          <td>${c.nome}</td>
+          <td>${c.matricula}</td>
+          <td>${c.cargo}</td>
+          <td>${c.turno}</td>
+          <td><button class="del" onclick="excluirColaborador(${c.id})">Excluir</button></td>
+        </tr>`;
+    }
   });
 }
+
+function excluirColaborador(id) {
+  const colab = colaboradores.find(c => c.id === id && !c.inativo);
+  if (!colab) return alert("Colaborador não encontrado.");
+  if (!confirm(`Deseja realmente excluir ${colab.nome}?`)) return;
+  colaboradores = colaboradores.filter(c => c.id !== id);
+  salvarLocal();
+  renderColaboradores();
+  alert("Colaborador excluído com sucesso!");
+}
+
 function renderRegistros() {
   entradaBody.innerHTML=''; saidaBody.innerHTML='';
   registros.forEach(r=>{
@@ -130,6 +152,7 @@ function renderRegistros() {
     else saidaBody.innerHTML+=row;
   });
 }
+
 function carregarSelectColab(showAll=false) {
   selectColab.innerHTML='';
   selectColabPonto.innerHTML='';
@@ -160,11 +183,7 @@ document.getElementById('editColabBtn').onclick = ()=>{
 };
 
 document.getElementById('deleteColabBtn').onclick = ()=>{
-  modalTitle.textContent='Excluir Colaborador';
-  selectColab.style.display='block';
-  carregarSelectColab(true);
-  colabModal.style.display='block';
-  document.getElementById('colabSubmit').dataset.action='delete';
+  alert("Agora você pode excluir diretamente clicando em 'Excluir' na tabela de colaboradores.");
 };
 
 // Registrar ponto
@@ -210,9 +229,6 @@ document.getElementById('colabForm').addEventListener('submit', e=>{
   } else if(action==='edit'){
     const colab=colaboradores.find(c=>c.id===id);
     if(colab){ colab.nome=nome; colab.matricula=matricula; colab.cargo=cargo; colab.turno=turno; }
-  } else if(action==='delete'){
-    const colab=colaboradores.find(c=>c.id===id);
-    if(colab){ colab.inativo=true; }
   }
   salvarLocal();
   renderColaboradores();
