@@ -7,7 +7,8 @@
 <style>
 body { font-family: Arial,sans-serif; background:#f5f5f5; margin:0; padding:20px; }
 .container { max-width:1200px; margin:auto; background:white; padding:20px; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);}
-h1 { text-align:center; color:#333; margin-bottom:20px;}
+h1 { text-align:center; color:#333; margin-bottom:10px;}
+h3#boasVindas { text-align:center; color:#555; margin-top:0; margin-bottom:20px; }
 .button-group { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;}
 button { padding:10px 15px; border:none; border-radius:4px; font-size:16px; cursor:pointer; transition:0.3s;}
 button:hover { opacity:0.9;}
@@ -15,6 +16,7 @@ button.add { background:#4CAF50; color:white; }
 button.edit { background:#FFC107; color:white;}
 button.del { background:#F44336; color:white;}
 button.reg { background:#2196F3; color:white;}
+button.logout { background:#9C27B0; color:white;}
 table { width:100%; border-collapse:collapse; margin-top:20px;}
 th, td { border:1px solid #ddd; padding:12px; text-align:left;}
 th { background:#f2f2f2;}
@@ -59,6 +61,7 @@ select,input,button { width:100%; margin:5px 0; padding:10px; border-radius:4px;
 
 <div class="container" id="conteudo" style="display:none;">
 <h1>Sistema de Ponto Eletrônico</h1>
+<h3 id="boasVindas"></h3>
 
 <div class="button-group">
   <button class="add" id="addColabBtn">Adicionar Colaborador</button>
@@ -67,6 +70,7 @@ select,input,button { width:100%; margin:5px 0; padding:10px; border-radius:4px;
   <button class="reg" id="entradaBtn">Registrar Entrada</button>
   <button class="reg" id="saidaBtn">Registrar Saída</button>
   <button class="reg" id="exportExcelBtn">Exportar Excel</button>
+  <button class="logout" id="logoutBtn">Sair</button>
 </div>
 
 <h2>Colaboradores</h2>
@@ -126,6 +130,7 @@ select,input,button { width:100%; margin:5px 0; padding:10px; border-radius:4px;
 <script>
 // --- SISTEMA DE SENHA ---
 const SENHA_CORRETA = "02072007";
+const NOME_USUARIO = "Administrador"; // <- Altere aqui se quiser outro nome
 
 function verificarSenha() {
   const input = document.getElementById("senhaInput").value;
@@ -136,26 +141,45 @@ function verificarSenha() {
     if (lembrar) localStorage.setItem("autenticado", "true");
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("conteudo").style.display = "block";
+    mostrarBoasVindas();
   } else {
     erro.style.display = "block";
   }
 }
+
+function mostrarBoasVindas() {
+  const hora = new Date().getHours();
+  let saudacao = "Olá";
+  if (hora < 12) saudacao = "Bom dia";
+  else if (hora < 18) saudacao = "Boa tarde";
+  else saudacao = "Boa noite";
+
+  document.getElementById("boasVindas").textContent = `${saudacao}, ${NOME_USUARIO}! 👋`;
+}
+
+// Logout (sair)
+document.getElementById("logoutBtn").onclick = () => {
+  localStorage.removeItem("autenticado");
+  document.getElementById("conteudo").style.display = "none";
+  document.getElementById("loginScreen").style.display = "flex";
+  document.getElementById("senhaInput").value = "";
+};
 
 // Verificar se já está autenticado
 window.onload = function() {
   if (localStorage.getItem("autenticado") === "true") {
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("conteudo").style.display = "block";
+    mostrarBoasVindas();
   }
 };
 
-// --- DADOS ---
+// --- DEMAIS FUNÇÕES (sistema de ponto) ---
 let colaboradores = JSON.parse(localStorage.getItem('colaboradores')) || [];
 let registros = JSON.parse(localStorage.getItem('registros')) || [];
 let ultimoIdColab = colaboradores.length>0 ? Math.max(...colaboradores.map(c=>c.id)) : 0;
 let ultimoIdRegistro = registros.length>0 ? Math.max(...registros.map(r=>r.id)) : 0;
 
-// --- DOM ---
 const colabBody = document.getElementById('colabBody');
 const entradaBody = document.getElementById('entradaBody');
 const saidaBody = document.getElementById('saidaBody');
@@ -166,7 +190,6 @@ const selectColabPonto = document.getElementById('selectColaboradorPonto');
 const modalTitle = document.getElementById('modalTitle');
 let tipoPonto = 'Entrada';
 
-// --- FUNÇÕES ---
 function salvarLocal() {
   localStorage.setItem('colaboradores', JSON.stringify(colaboradores));
   localStorage.setItem('registros', JSON.stringify(registros));
@@ -220,7 +243,7 @@ function carregarSelectColab(showAll=false) {
   });
 }
 
-// --- BOTÕES ---
+// BOTÕES E FORMULÁRIOS
 document.getElementById('addColabBtn').onclick = ()=>{
   modalTitle.textContent='Adicionar Colaborador';
   selectColab.style.display='none';
@@ -241,7 +264,6 @@ document.getElementById('deleteColabBtn').onclick = ()=>{
   alert("Agora você pode excluir diretamente clicando em 'Excluir' na tabela de colaboradores.");
 };
 
-// Registrar ponto
 document.getElementById('entradaBtn').onclick = ()=>{
   tipoPonto='Entrada';
   pontoModal.style.display='block';
@@ -255,7 +277,6 @@ document.getElementById('saidaBtn').onclick = ()=>{
   document.getElementById('pontoTitle').textContent='Registrar Saída';
 };
 
-// Exportar Excel
 document.getElementById('exportExcelBtn').onclick = ()=>{
   const wb=XLSX.utils.book_new();
   const entradaWS=XLSX.utils.json_to_sheet(registros.filter(r=>r.tipo==='Entrada').map(r=>({ID:r.id,Nome:r.nome,Matrícula:r.matricula,'Data/Hora':new Date(r.dataHora).toLocaleString()})));
@@ -265,10 +286,8 @@ document.getElementById('exportExcelBtn').onclick = ()=>{
   XLSX.writeFile(wb,'registros_ponto.xlsx');
 };
 
-// Fechar modal
 document.querySelectorAll('.close').forEach(btn=>btn.onclick=()=>{ btn.closest('.modal').style.display='none'; });
 
-// Formulário Colaborador
 document.getElementById('colabForm').addEventListener('submit', e=>{
   e.preventDefault();
   const action=document.getElementById('colabSubmit').dataset.action;
@@ -291,7 +310,6 @@ document.getElementById('colabForm').addEventListener('submit', e=>{
   document.getElementById('colabForm').reset();
 });
 
-// Formulário Ponto
 document.getElementById('pontoForm').addEventListener('submit', e=>{
   e.preventDefault();
   const id=parseInt(selectColabPonto.value);
@@ -304,7 +322,6 @@ document.getElementById('pontoForm').addEventListener('submit', e=>{
   pontoModal.style.display='none';
 });
 
-// Inicial
 renderColaboradores();
 renderRegistros();
 </script>
