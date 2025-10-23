@@ -13,73 +13,45 @@
     margin: 0;
     padding: 0;
   }
-
   h1 {
     text-align: center;
     background: rgba(0,0,0,0.6);
     padding: 20px;
     margin: 0;
   }
-
   .container {
     max-width: 900px;
     margin: 20px auto;
-    background: rgba(255,255,255,0.9);
+    background: rgba(0,0,0,0.7);
     padding: 20px;
     border-radius: 10px;
-    color: #000;
   }
-
   input, select, button {
     margin: 5px;
     padding: 8px;
     border-radius: 5px;
-    border: 1px solid #ccc;
-    font-size: 15px;
+    border: none;
   }
-
   button {
     background: #00c853;
     color: white;
     cursor: pointer;
   }
-
   button:hover {
     background: #009624;
   }
-
   table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 15px;
-    background: #fff;
-    color: #000; /* ✅ texto preto visível */
+    background: rgba(255,255,255,0.1);
   }
-
   th, td {
-    border: 1px solid #ccc;
-    padding: 10px;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 8px;
     text-align: center;
   }
-
   th {
-    background: #f2f2f2;
-  }
-
-  tr:nth-child(even) {
-    background: #f9f9f9;
-  }
-
-  tr:nth-child(odd) {
-    background: #ffffff;
-  }
-
-  button.excluir {
-    background: #ff4444;
-  }
-
-  button.excluir:hover {
-    background: #cc0000;
+    background: rgba(0,0,0,0.5);
   }
 </style>
 </head>
@@ -122,7 +94,7 @@ function renderColaboradores() {
         <td>
           <button onclick="registrarAcao('${c.id}', 'entrada')">Entrada</button>
           <button onclick="registrarAcao('${c.id}', 'saida')">Saída</button>
-          <button class="excluir" onclick="registrarAcao('${c.id}', 'delete')">Excluir</button>
+          <button onclick="registrarAcao('${c.id}', 'delete')">Excluir</button>
         </td>
       </tr>
     `;
@@ -148,16 +120,14 @@ function registrarAcao(id, action) {
   } else if (action === 'saida') {
     c.saida = new Date().toLocaleString();
   } else if (action === 'delete') {
-    if (confirm(`Tem certeza que deseja excluir ${c.nome}?`)) {
-      const index = colaboradores.findIndex(x => x.id === id);
-      if (index !== -1) {
-        colaboradores.splice(index, 1);
-      }
-    } else {
-      return;
+    // 🗑️ Remove totalmente do array
+    const index = colaboradores.findIndex(c => c.id === id);
+    if (index !== -1) {
+      colaboradores.splice(index, 1); // remove o colaborador do array
     }
   }
 
+  // 💾 Dica: depois de alterar, sempre salve e recarregue
   salvarLocal();
   renderColaboradores();
 }
