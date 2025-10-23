@@ -40,6 +40,9 @@ select,input,button { width:100%; margin:5px 0; padding:10px; border-radius:4px;
 #loginScreen button {
   background:#4CAF50; color:white; padding:10px 20px; border:none; border-radius:5px; font-size:18px;
 }
+#loginScreen label {
+  font-size:14px;
+}
 </style>
 </head>
 <body>
@@ -49,6 +52,7 @@ select,input,button { width:100%; margin:5px 0; padding:10px; border-radius:4px;
   <h2>🔒 Acesso Restrito</h2>
   <p>Digite a senha para entrar:</p>
   <input type="password" id="senhaInput" placeholder="Senha">
+  <label><input type="checkbox" id="lembrarSenha"> Lembrar login</label>
   <button onclick="verificarSenha()">Entrar</button>
   <p id="erroSenha" style="color:red; display:none;">Senha incorreta!</p>
 </div>
@@ -125,15 +129,25 @@ const SENHA_CORRETA = "02072007";
 
 function verificarSenha() {
   const input = document.getElementById("senhaInput").value;
+  const lembrar = document.getElementById("lembrarSenha").checked;
   const erro = document.getElementById("erroSenha");
 
   if (input === SENHA_CORRETA) {
+    if (lembrar) localStorage.setItem("autenticado", "true");
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("conteudo").style.display = "block";
   } else {
     erro.style.display = "block";
   }
 }
+
+// Verificar se já está autenticado
+window.onload = function() {
+  if (localStorage.getItem("autenticado") === "true") {
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("conteudo").style.display = "block";
+  }
+};
 
 // --- DADOS ---
 let colaboradores = JSON.parse(localStorage.getItem('colaboradores')) || [];
