@@ -130,7 +130,7 @@ select,input,button { width:100%; margin:5px 0; padding:10px; border-radius:4px;
 <script>
 // --- SISTEMA DE SENHA ---
 const SENHA_CORRETA = "02072007";
-const NOME_USUARIO = "Administrador"; // <- Altere aqui se quiser outro nome
+const NOME_USUARIO = "CLX"; // <- Altere aqui se quiser outro nome
 
 function verificarSenha() {
   const input = document.getElementById("senhaInput").value;
