@@ -130,7 +130,7 @@ select,input,button { width:100%; margin:5px 0; padding:10px; border-radius:4px;
 <script>
 // --- SISTEMA DE SENHA ---
 const SENHA_CORRETA = "02072007";
-const NOME_USUARIO = "CLX"; // <- Altere aqui se quiser outro nome
+const NOME_USUARIO = "CLX"; 
 
 function verificarSenha() {
   const input = document.getElementById("senhaInput").value;
@@ -157,7 +157,7 @@ function mostrarBoasVindas() {
   document.getElementById("boasVindas").textContent = `${saudacao}, ${NOME_USUARIO}! 👋`;
 }
 
-// Logout (sair)
+// Logout
 document.getElementById("logoutBtn").onclick = () => {
   localStorage.removeItem("autenticado");
   document.getElementById("conteudo").style.display = "none";
@@ -174,7 +174,7 @@ window.onload = function() {
   }
 };
 
-// --- DEMAIS FUNÇÕES (sistema de ponto) ---
+// --- SISTEMA DE PONTO ---
 let colaboradores = JSON.parse(localStorage.getItem('colaboradores')) || [];
 let registros = JSON.parse(localStorage.getItem('registros')) || [];
 let ultimoIdColab = colaboradores.length>0 ? Math.max(...colaboradores.map(c=>c.id)) : 0;
@@ -243,7 +243,7 @@ function carregarSelectColab(showAll=false) {
   });
 }
 
-// BOTÕES E FORMULÁRIOS
+// BOTÕES
 document.getElementById('addColabBtn').onclick = ()=>{
   modalTitle.textContent='Adicionar Colaborador';
   selectColab.style.display='none';
@@ -270,6 +270,7 @@ document.getElementById('entradaBtn').onclick = ()=>{
   carregarSelectColab();
   document.getElementById('pontoTitle').textContent='Registrar Entrada';
 };
+
 document.getElementById('saidaBtn').onclick = ()=>{
   tipoPonto='Saída';
   pontoModal.style.display='block';
@@ -277,17 +278,27 @@ document.getElementById('saidaBtn').onclick = ()=>{
   document.getElementById('pontoTitle').textContent='Registrar Saída';
 };
 
+// EXPORTAR EXCEL
 document.getElementById('exportExcelBtn').onclick = ()=>{
   const wb=XLSX.utils.book_new();
-  const entradaWS=XLSX.utils.json_to_sheet(registros.filter(r=>r.tipo==='Entrada').map(r=>({ID:r.id,Nome:r.nome,Matrícula:r.matricula,'Data/Hora':new Date(r.dataHora).toLocaleString()})));
-  const saidaWS=XLSX.utils.json_to_sheet(registros.filter(r=>r.tipo==='Saída').map(r=>({ID:r.id,Nome:r.nome,Matrícula:r.matricula,'Data/Hora':new Date(r.dataHora).toLocaleString()})));
-  XLSX.utils.book_append_sheet(wb,entradaWS,'Entradas');
-  XLSX.utils.book_append_sheet(wb,saidaWS,'Saídas');
+  const entradaWS=XLSX.utils.json_to_sheet(
+    registros.filter(r=>r.tipo==='Entrada').map(r=>({
+      ID:r.id,Nome:r.nome,Matrícula:r.matricula,'Data/Hora':new Date(r.dataHora).toLocaleString()
+    }))
+  );
+  const saidaWS=XLSX.utils.json_to_sheet(
+    registros.filter(r=>r.tipo==='Saída').map(r=>({
+      ID:r.id,Nome:r.nome,Matrícula:r.matricula,'Data/Hora':new Date(r.dataHora).toLocaleString()
+    }))
+  );
+  XLSX.utils.book_append_sheet(wb,entradaWS,'Entrada');
+  XLSX.utils.book_append_sheet(wb,saidaWS,'Saída');
   XLSX.writeFile(wb,'registros_ponto.xlsx');
 };
 
 document.querySelectorAll('.close').forEach(btn=>btn.onclick=()=>{ btn.closest('.modal').style.display='none'; });
 
+// SALVAR / EDITAR COLABORADOR
 document.getElementById('colabForm').addEventListener('submit', e=>{
   e.preventDefault();
   const action=document.getElementById('colabSubmit').dataset.action;
@@ -310,13 +321,38 @@ document.getElementById('colabForm').addEventListener('submit', e=>{
   document.getElementById('colabForm').reset();
 });
 
+// REGISTRAR PONTO (ENTRADA/SAÍDA)
 document.getElementById('pontoForm').addEventListener('submit', e=>{
   e.preventDefault();
   const id=parseInt(selectColabPonto.value);
   const colab=colaboradores.find(c=>c.id===id);
   if(!colab) return;
-  ultimoIdRegistro++;
-  registros.push({id:ultimoIdRegistro,nome:colab.nome,matricula:colab.matricula,tipo:tipoPonto,dataHora:new Date().toISOString()});
+
+  if(tipoPonto==='Entrada'){
+    ultimoIdRegistro++;
+    registros.push({
+      id:ultimoIdRegistro,
+      nome:colab.nome,
+      matricula:colab.matricula,
+      tipo:'Entrada',
+      dataHora:new Date().toISOString()
+    });
+  } else {
+    const entradaAberta=[...registros].reverse().find(r=>r.matricula===colab.matricula && r.tipo==='Entrada');
+    if(entradaAberta){
+      registros.push({
+        id:entradaAberta.id,
+        nome:colab.nome,
+        matricula:colab.matricula,
+        tipo:'Saída',
+        dataHora:new Date().toISOString()
+      });
+    } else {
+      alert('⚠️ Nenhuma entrada registrada para este colaborador.');
+      return;
+    }
+  }
+
   salvarLocal();
   renderRegistros();
   pontoModal.style.display='none';
