@@ -1,9 +1,11 @@
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Ponto Eletrônico - Firebase</title>
 <style>
+/* MESMO CSS DO SEU EXEMPLO */
 :root{--blue:#003366;--green:#4CAF50;--yellow:#ff9800;--red:#f44336;}
 body{font-family:Arial,Helvetica,sans-serif;background:#f7f9fc;margin:0}
 header{background:var(--blue);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -13,8 +15,8 @@ header{background:var(--blue);color:#fff;padding:10px 16px;display:flex;align-it
 button{padding:8px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:600}
 .add{background:var(--green);color:#fff}
 .edit{background:#2196F3;color:#fff}
-.del{background:var(--red);color:#fff}
-.download{background:var(--yellow);color:#111}
+.del{background:#f44336;color:#fff}
+.download{background:#ff9800;color:#111}
 .secondary{background:#e0e0e0;color:#222}
 main{padding:18px;max-width:1100px;margin:18px auto}
 .search{width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;margin-bottom:12px}
@@ -109,12 +111,14 @@ tr:hover td{background:#fbfbfb}
   </div>
 </div>
 
+<!-- dependência XLSX -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
 <!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
 
-// Config Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyCpBiFzqOod4K32cWMr5hfx13fw6LGcPVY",
   authDomain: "ponto-eletronico-f35f9.firebaseapp.com",
@@ -129,111 +133,98 @@ const db = getFirestore(app);
 
 /* ---------------- ESTADO ---------------- */
 let colaboradores = [];
-let pontos = JSON.parse(localStorage.getItem('pontos') || '[]');
+let pontos = JSON.parse(localStorage.getItem('pontos')||'[]');
 
 /* ---------------- ELEMENTOS ---------------- */
-const loginScreen = document.getElementById('loginScreen');
-const mainApp = document.getElementById('mainApp');
-const loginBtn = document.getElementById('loginBtn');
-const loginMsg = document.getElementById('loginMsg');
-const logoutBtn = document.getElementById('logoutBtn');
-const rememberLogin = document.getElementById('rememberLogin');
+const loginScreen=document.getElementById('loginScreen');
+const mainApp=document.getElementById('mainApp');
+const loginBtn=document.getElementById('loginBtn');
+const loginMsg=document.getElementById('loginMsg');
+const logoutBtn=document.getElementById('logoutBtn');
+const rememberLogin=document.getElementById('rememberLogin');
 
-const clockEl = document.getElementById('clock');
-const statusEl = document.getElementById('status');
+const clockEl=document.getElementById('clock');
+const statusEl=document.getElementById('status');
 
-const addColabBtn = document.getElementById('addColabBtn');
-const editColabBtn = document.getElementById('editColabBtn');
-const deleteColabBtn = document.getElementById('deleteColabBtn');
-const entradaBtn = document.getElementById('entradaBtn');
-const saidaBtn = document.getElementById('saidaBtn');
-const baixarBtn = document.getElementById('baixarBtn');
-const limparTodosBtn = document.getElementById('limparTodosBtn');
+const addColabBtn=document.getElementById('addColabBtn');
+const editColabBtn=document.getElementById('editColabBtn');
+const deleteColabBtn=document.getElementById('deleteColabBtn');
+const entradaBtn=document.getElementById('entradaBtn');
+const saidaBtn=document.getElementById('saidaBtn');
+const baixarBtn=document.getElementById('baixarBtn');
+const limparTodosBtn=document.getElementById('limparTodosBtn');
 
-const searchInput = document.getElementById('search');
+const searchInput=document.getElementById('search');
 
-const colabBody = document.getElementById('colabBody');
-const pontosBody = document.getElementById('pontosBody');
+const colabBody=document.getElementById('colabBody');
+const pontosBody=document.getElementById('pontosBody');
 
 /* ---------------- LOGIN ---------------- */
-const LOGIN_USER = 'CLX', LOGIN_PASS = '02072007';
-
+const LOGIN_USER='CLX', LOGIN_PASS='02072007';
 loginBtn.addEventListener('click', ()=>{
-  const u = document.getElementById('user').value.trim();
-  const p = document.getElementById('pass').value.trim();
-  if(u === LOGIN_USER && p === LOGIN_PASS){
-    loginScreen.style.display = 'none';
+  const u=document.getElementById('user').value.trim();
+  const p=document.getElementById('pass').value.trim();
+  if(u===LOGIN_USER && p===LOGIN_PASS){
+    loginScreen.style.display='none';
     mainApp.classList.remove('hidden');
-    if(rememberLogin.checked) localStorage.setItem('autenticado', '1');
+    if(rememberLogin.checked) localStorage.setItem('autenticado','1');
     carregarColaboradoresFirebase();
   } else {
-    loginMsg.textContent = 'Usuário ou senha incorretos.';
-    setTimeout(()=> loginMsg.textContent = '', 3000);
+    loginMsg.textContent='Usuário ou senha incorretos.';
+    setTimeout(()=>loginMsg.textContent='',3000);
   }
 });
-
 if(localStorage.getItem('autenticado')==='1'){
   loginScreen.style.display='none';
   mainApp.classList.remove('hidden');
   carregarColaboradoresFirebase();
 }
-
-logoutBtn.addEventListener('click', ()=>{
-  localStorage.removeItem('autenticado');
-  location.reload();
-});
+logoutBtn.addEventListener('click', ()=>{ localStorage.removeItem('autenticado'); location.reload(); });
 
 /* ---------------- RELÓGIO ---------------- */
-function atualizarRelogio(){
-  const now = new Date();
-  clockEl.textContent = now.toLocaleTimeString('pt-BR', {hour12:false});
-}
-setInterval(atualizarRelogio,1000);
-atualizarRelogio();
+function atualizarRelogio(){ const now=new Date(); clockEl.textContent=now.toLocaleTimeString('pt-BR',{hour12:false}); }
+setInterval(atualizarRelogio,1000); atualizarRelogio();
 
 /* ---------------- FIREBASE ---------------- */
 async function carregarColaboradoresFirebase(){
   try{
-    const querySnapshot = await getDocs(collection(db,'colaboradores'));
-    colaboradores = [];
-    querySnapshot.forEach(doc=>{
-      colaboradores.push({...doc.data(), id:doc.id});
-    });
-    statusEl.textContent = 'Online • Firebase';
+    const snapshot=await getDocs(collection(db,'colaboradores'));
+    colaboradores=[];
+    snapshot.forEach(doc=>{ colaboradores.push({...doc.data(),id:doc.id}); });
+    statusEl.textContent='Online • Firebase';
     renderColaboradores();
-  }catch(e){
-    console.error('Erro ao carregar colaboradores:',e);
-    statusEl.textContent = 'Offline • Local Storage';
-  }
+  }catch(e){ console.error(e); statusEl.textContent='Offline • Local Storage'; renderColaboradores(); }
 }
-
-/* ---------------- UTIL ---------------- */
-function salvarLocal(){
-  localStorage.setItem('pontos',JSON.stringify(pontos));
-}
-function escapeHtml(s){ if(!s && s!==0) return ''; return String(s).replace(/[&<>"'`=\/]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D'}[ch])); }
 
 /* ---------------- RENDER ---------------- */
 function renderColaboradores(){
-  const term = (searchInput.value||'').toLowerCase().trim();
+  const term=(searchInput.value||'').toLowerCase().trim();
   colabBody.innerHTML='';
   colaboradores.forEach((c,idx)=>{
-    if(term && !(String(c.nome).toLowerCase().includes(term) || String(c.matricula).toLowerCase().includes(term) || String(c.email||'').toLowerCase().includes(term))) return;
+    if(term && !(c.nome.toLowerCase().includes(term)||c.matricula.toLowerCase().includes(term)|| (c.email||'').toLowerCase().includes(term))) return;
     const tr=document.createElement('tr');
     tr.innerHTML=`
       <td>${idx+1}</td>
-      <td>${escapeHtml(c.id)}</td>
-      <td>${escapeHtml(c.nome)}</td>
-      <td>${escapeHtml(c.matricula)} <span class="small">(${escapeHtml(c.email||'')})</span></td>
-      <td>${escapeHtml(c.turno||'')}</td>
+      <td>${c.id}</td>
+      <td>${c.nome}</td>
+      <td>${c.matricula} <span class="small">(${c.email||''})</span></td>
+      <td>${c.turno||''}</td>
       <td class="flex-row">
-        <button class="edit" onclick="editarColab('${c.id}')">Editar</button>
-        <button class="del" onclick="removerColabPrompt('${c.id}')">Excluir</button>
-        <button class="secondary" style="background:#e8f5e9;color:#111;margin-left:6px" onclick="registrarPontoPrompt('${c.id}','Entrada')">Entrada</button>
-        <button class="secondary" style="background:#e3f2fd;color:#111" onclick="registrarPontoPrompt('${c.id}','Saída')">Saída</button>
+        <button class="editBtn">Editar</button>
+        <button class="delBtn">Excluir</button>
+        <button class="entradaBtn" style="background:#e8f5e9;color:#111;margin-left:6px">Entrada</button>
+        <button class="saidaBtn" style="background:#e3f2fd;color:#111">Saída</button>
       </td>
     `;
     colabBody.appendChild(tr);
+
+    // registrar eventos dinamicamente
+    tr.querySelector('.editBtn').addEventListener('click', ()=> alert('Editar colaborador '+c.id));
+    tr.querySelector('.delBtn').addEventListener('click', ()=> {
+      if(confirm('Excluir colaborador '+c.id+' ?')){ colaboradores=colaboradores.filter(x=>x.id!==c.id); renderColaboradores(); }
+    });
+    tr.querySelector('.entradaBtn').addEventListener('click', ()=> registrarPonto(c,'Entrada'));
+    tr.querySelector('.saidaBtn').addEventListener('click', ()=> registrarPonto(c,'Saída'));
   });
 }
 
@@ -243,55 +234,38 @@ function renderPontos(){
     const tr=document.createElement('tr');
     tr.innerHTML=`
       <td>${i+1}</td>
-      <td>${escapeHtml(p.id)}</td>
-      <td>${escapeHtml(p.nome)}</td>
-      <td>${escapeHtml(p.matricula)}</td>
-      <td>${escapeHtml(p.email||'')}</td>
-      <td>${escapeHtml(p.tipo)}</td>
-      <td>${escapeHtml(p.data)}</td>
-      <td>${escapeHtml(p.hora)}</td>
-      <td>
-        <button class="del" onclick="removerPonto(${i})">Excluir</button>
-      </td>
+      <td>${p.id}</td>
+      <td>${p.nome}</td>
+      <td>${p.matricula}</td>
+      <td>${p.email||''}</td>
+      <td>${p.tipo}</td>
+      <td>${p.data}</td>
+      <td>${p.hora}</td>
+      <td><button class="delBtn">Excluir</button></td>
     `;
     pontosBody.appendChild(tr);
+    tr.querySelector('.delBtn').addEventListener('click', ()=>{
+      if(confirm('Excluir este registro?')){ pontos.splice(i,1); salvarPontos(); renderPontos(); }
+    });
   });
 }
 
 /* ---------------- PONTOS ---------------- */
-entradaBtn.addEventListener('click', ()=> {
-  const id = prompt('Digite o ID do colaborador para registrar Entrada:');
-  if(id) registrarPontoPrompt(id,'Entrada');
-});
-saidaBtn.addEventListener('click', ()=> {
-  const id = prompt('Digite o ID do colaborador para registrar Saída:');
-  if(id) registrarPontoPrompt(id,'Saída');
-});
-
-function registrarPontoPrompt(colabId,tipo){
-  const c = colaboradores.find(x=>String(x.id)===String(colabId));
-  if(!c) return alert('Colaborador não encontrado.');
-  registrarPonto(c,tipo);
-}
-
 function registrarPonto(colab,tipo){
-  const now = new Date();
-  const data = now.toLocaleDateString('pt-BR');
-  const hora = now.toLocaleTimeString('pt-BR',{hour12:false});
+  const now=new Date();
+  const data=now.toLocaleDateString('pt-BR');
+  const hora=now.toLocaleTimeString('pt-BR',{hour12:false});
   pontos.push({id:String(colab.id),nome:colab.nome,matricula:colab.matricula,email:colab.email||'',tipo,data,hora});
-  salvarLocal();
+  salvarPontos();
   renderPontos();
   alert(`${colab.nome} registrou ${tipo} às ${hora}`);
 }
+function salvarPontos(){ localStorage.setItem('pontos',JSON.stringify(pontos)); }
 
-window.removerPonto = function(i){if(confirm('Excluir este registro?')){pontos.splice(i,1);salvarLocal();renderPontos();}};
-
-/* ---------------- PESQUISA ---------------- */
 searchInput.addEventListener('input', renderColaboradores);
 
-/* ---------------- INICIALIZAR ---------------- */
+/* ---------------- INICIAL ---------------- */
 renderPontos();
-
 </script>
 </body>
 </html>
