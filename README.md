@@ -2,242 +2,394 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ponto Eletrônico - CLX</title>
+<title>Ponto Eletrônico - Final</title>
 <style>
-  body{font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:20px;}
-  .container{max-width:1200px;margin:auto;background:white;padding:20px;border-radius:8px;box-shadow:0 0 10px rgba(0,0,0,0.1);}
-  h1{text-align:center;color:#333;margin-bottom:10px;}
-  h3#boasVindas{text-align:center;color:#555;margin-top:0;margin-bottom:15px;}
-  .button-group{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
-  button{padding:10px 15px;border:none;border-radius:4px;font-size:15px;cursor:pointer;transition:0.3s;}
-  button.add{background:#4CAF50;color:white;}
-  button.edit{background:#FFC107;color:white;}
-  button.del{background:#F44336;color:white;}
-  button.reg{background:#2196F3;color:white;}
-  button.export{background:#2E7D32;color:white;}
-  button.logout{background:#9C27B0;color:white;}
-  table{width:100%;border-collapse:collapse;margin-top:10px;}
-  th,td{border:1px solid #ddd;padding:10px;text-align:left;vertical-align:middle;}
-  th{background:#f2f2f2;}
-  tr:nth-child(even){background:#f9f9f9;}
-  .small{font-size:13px;color:#666;}
-  input,select{padding:8px;border-radius:6px;border:1px solid #ccc;font-size:14px;}
-  .modal{display:none;position:fixed;z-index:2;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;}
-  .modal-content{background:white;padding:18px;border-radius:8px;width:90%;max-width:520px;box-shadow:0 8px 30px rgba(0,0,0,.12);}
-  .close{float:right;font-size:22px;cursor:pointer;border:none;background:none;}
-  #loginScreen{position:fixed;top:0;left:0;width:100%;height:100%;background:#222;color:white;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;z-index:9;}
-  #loginScreen input{padding:10px;font-size:18px;border-radius:6px;border:none;text-align:center;}
-  #loginScreen button{background:#4CAF50;color:white;padding:10px 20px;border:none;border-radius:6px;font-size:16px;cursor:pointer;}
+  :root{--blue:#003366;--green:#4CAF50;--yellow:#ff9800;--red:#f44336;}
+  body{font-family:Arial,Helvetica,sans-serif;background:#f7f9fc;margin:0}
+  header{background:var(--blue);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .logo{font-weight:700}
+  #clock{font-weight:700}
+  .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  button{padding:8px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:600}
+  .add{background:var(--green);color:#fff}
+  .edit{background:#2196F3;color:#fff}
+  .del{background:var(--red);color:#fff}
+  .download{background:var(--yellow);color:#111}
+  .secondary{background:#e0e0e0;color:#222}
+  main{padding:18px;max-width:1100px;margin:18px auto}
+  .search{width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,0.06)}
+  th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;font-size:14px}
+  th{background:#fafafa;font-weight:700}
+  tr:hover td{background:#fbfbfb}
+  .small{font-size:13px;color:#666;margin-left:6px}
+  .muted{color:#666;font-size:13px}
+  .flex-row{display:flex;gap:8px;align-items:center}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:999}
+  .modal-content{background:#fff;padding:20px;border-radius:10px;width:95%;max-width:420px}
+  .hidden{display:none}
+  .top-right{display:flex;gap:8px;align-items:center}
+  @media(max-width:720px){ header{flex-direction:column;align-items:flex-start} .controls{width:100%;justify-content:space-between} }
 </style>
 </head>
 <body>
 
-<!-- Tela de login -->
-<div id="loginScreen">
-  <h2>🔒 Login no Sistema</h2>
-  <input type="text" id="loginUser" placeholder="Usuário">
-  <input type="password" id="loginPass" placeholder="Senha">
-  <button id="btnLogin">Entrar</button>
-  <p id="erroLogin" style="color:red;display:none;">Usuário ou senha incorretos!</p>
+<!-- LOGIN -->
+<div id="loginScreen" style="position:fixed;inset:0;background:var(--blue);display:flex;align-items:center;justify-content:center;z-index:9999">
+  <div style="background:#fff;padding:28px;border-radius:10px;width:92%;max-width:360px;text-align:center">
+    <h2 style="margin:0 0 8px">Login do Sistema</h2>
+    <input id="user" placeholder="Usuário" style="width:92%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ccc"><br>
+    <input id="pass" type="password" placeholder="Senha" style="width:92%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ccc"><br>
+    <button id="loginBtn" class="add" style="width:92%;margin-top:6px">Entrar</button>
+    <p id="loginMsg" style="color:crimson;margin-top:8px;height:18px"></p>
+    <p style="font-size:12px;color:#666;margin-top:6px">Usuário: <b>admin</b> / Senha: <b>1234</b></p>
+  </div>
 </div>
 
-<div class="container" id="conteudo" style="display:none;">
-  <h1>Sistema de Ponto Eletrônico</h1>
-  <h3 id="boasVindas"></h3>
-
-  <div class="button-group">
-    <button class="add" id="addColabBtn">Adicionar Colaborador</button>
-    <button class="edit" id="editColabBtn">Editar Colaborador</button>
-    <button class="del" id="deleteColabBtn">Excluir Colaborador</button>
-    <button class="reg" id="openPontoModalBtn">Registrar Ponto</button>
-    <button class="export" id="exportExcelBtn">Exportar Excel</button>
-    <button class="logout" id="logoutBtn">Sair</button>
+<header>
+  <div style="display:flex;gap:12px;align-items:center">
+    <div class="logo">Ponto Eletrônico</div>
+    <div id="status" class="muted">Offline • Local Storage</div>
   </div>
 
-  <input id="search" placeholder="🔍 Pesquise por nome ou matrícula" style="width:100%;margin-bottom:10px;">
+  <div id="clock">--:--:--</div>
 
+  <div class="controls top-right">
+    <button class="add" id="addColabBtn">Adicionar</button>
+    <button class="edit" id="editColabBtn">Editar</button>
+    <button class="del" id="deleteColabBtn">Excluir</button>
+    <button class="add" id="entradaBtn">Bater Entrada</button>
+    <button class="edit" id="saidaBtn">Bater Saída</button>
+    <button class="download" id="baixarBtn">Baixar Planilha</button>
+    <button class="secondary" id="limparTodosBtn">Limpar todos os pontos</button>
+    <button class="secondary" id="logoutBtn">Sair</button>
+  </div>
+</header>
+
+<main id="mainApp" class="hidden">
+  <input id="search" class="search" placeholder="🔍 Pesquisar por nome, matrícula ou e-mail">
+
+  <h3>Colaboradores</h3>
   <table id="colabTable">
     <thead>
-      <tr><th>#</th><th>ID</th><th>Nome</th><th>Matrícula / E-mail</th><th>Cargo</th><th>Turno</th><th>Ações</th></tr>
+      <tr>
+        <th>#</th><th>ID</th><th>Nome</th><th>Matrícula / E-mail</th><th>Turno</th><th>Ações</th>
+      </tr>
     </thead>
     <tbody id="colabBody"></tbody>
   </table>
-</div>
+
+  <h3 style="margin-top:18px">Pontos Registrados</h3>
+  <table id="pontosTable">
+    <thead>
+      <tr>
+        <th>#</th><th>ID Colab</th><th>Nome</th><th>Matrícula</th><th>E-mail</th><th>Tipo</th><th>Data</th><th>Hora</th><th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="pontosBody"></tbody>
+  </table>
+</main>
 
 <!-- Modal Colaborador -->
-<div id="colabModal" class="modal">
+<div id="colabModal" class="modal hidden">
   <div class="modal-content">
-    <button class="close" onclick="fecharModal('colabModal')">&times;</button>
-    <h3 id="modalTitle">Adicionar Colaborador</h3>
-    <form id="colabForm">
-      <input type="hidden" id="colabId">
-      <label>Nome</label><input id="colabNome" required><br>
-      <label>E-mail</label><input id="colabEmail" type="email" required><br>
-      <label>Matrícula</label><input id="colabMatricula" required><br>
-      <label>Cargo</label><input id="colabCargo" required><br>
-      <label>Turno</label>
-      <select id="colabTurno" required>
-        <option>Manhã</option><option>Tarde</option><option>Noite</option>
-      </select><br><br>
-      <button type="submit" class="add">Salvar</button>
-      <button type="button" onclick="fecharModal('colabModal')">Cancelar</button>
-    </form>
+    <h3 id="colabTitle">Novo Colaborador</h3>
+    <input type="hidden" id="colabId">
+    <div style="margin-top:8px">
+      <label>Nome</label><br><input id="colabNome" style="width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ccc">
+      <label>Matrícula</label><br><input id="colabMatricula" style="width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ccc">
+      <label>E-mail</label><br><input id="colabEmail" style="width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ccc">
+      <label>Turno</label><br><input id="colabTurno" style="width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ccc">
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+      <button id="saveColabBtn" class="add">Salvar</button>
+      <button id="cancelColabBtn" class="secondary">Cancelar</button>
+    </div>
   </div>
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+<!-- dependência XLSX -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-// 🔥 Firebase Config
-const firebaseConfig = {
-  apiKey: "AIzaSyCpBiFzqOod4K32cWMr5hfx13fw6LGcPVY",
-  authDomain: "ponto-eletronico-f35f9.firebaseapp.com",
-  projectId: "ponto-eletronico-f35f9",
-  storageBucket: "ponto-eletronico-f35f9.firebasestorage.app",
-  messagingSenderId: "208638350255",
-  appId: "1:208638350255:web:63d016867a67575b5e155a"
-};
+<script>
+/* ---------------- CONFIG ---------------- */
+const LOGIN_USER = 'CLX', LOGIN_PASS = '02072007';
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const colabsRef = collection(db, "colaboradores");
+/* ---------------- ESTADO (localStorage) ---------------- */
+let colaboradores = JSON.parse(localStorage.getItem('colaboradores') || '[]');
+let pontos = JSON.parse(localStorage.getItem('pontos') || '[]');
 
-const conteudo = document.getElementById("conteudo");
-const loginScreen = document.getElementById("loginScreen");
+/* ---------------- ELEMENTOS ---------------- */
+const loginScreen = document.getElementById('loginScreen');
+const mainApp = document.getElementById('mainApp');
+const loginBtn = document.getElementById('loginBtn');
+const loginMsg = document.getElementById('loginMsg');
+const logoutBtn = document.getElementById('logoutBtn');
+const clockEl = document.getElementById('clock');
+const statusEl = document.getElementById('status');
 
-// 👤 Login
-const USER = "CLX";
-const PASS = "02072007";
+const addColabBtn = document.getElementById('addColabBtn');
+const editColabBtn = document.getElementById('editColabBtn');
+const deleteColabBtn = document.getElementById('deleteColabBtn');
+const entradaBtn = document.getElementById('entradaBtn');
+const saidaBtn = document.getElementById('saidaBtn');
+const baixarBtn = document.getElementById('baixarBtn');
+const limparTodosBtn = document.getElementById('limparTodosBtn');
 
-document.getElementById("btnLogin").addEventListener("click",()=>{
-  const u=document.getElementById("loginUser").value.trim();
-  const p=document.getElementById("loginPass").value.trim();
-  if(u===USER && p===PASS){
-    loginScreen.style.display="none";
-    conteudo.style.display="block";
-  }else{
-    document.getElementById("erroLogin").style.display="block";
-    setTimeout(()=>document.getElementById("erroLogin").style.display="none",3000);
+const searchInput = document.getElementById('search');
+
+const colabBody = document.getElementById('colabBody');
+const pontosBody = document.getElementById('pontosBody');
+
+const colabModal = document.getElementById('colabModal');
+const colabIdInput = document.getElementById('colabId');
+const colabNomeInput = document.getElementById('colabNome');
+const colabMatInput = document.getElementById('colabMatricula');
+const colabEmailInput = document.getElementById('colabEmail');
+const colabTurnoInput = document.getElementById('colabTurno');
+const saveColabBtn = document.getElementById('saveColabBtn');
+const cancelColabBtn = document.getElementById('cancelColabBtn');
+
+/* ---------------- LOGIN ---------------- */
+loginBtn.addEventListener('click', ()=>{
+  const u = document.getElementById('user').value.trim();
+  const p = document.getElementById('pass').value.trim();
+  if(u === LOGIN_USER && p === LOGIN_PASS){
+    loginScreen.style.display = 'none';
+    mainApp.classList.remove('hidden');
+    persistAuth(true);
+    renderAll();
+  } else {
+    loginMsg.textContent = 'Usuário ou senha incorretos.';
+    setTimeout(()=> loginMsg.textContent = '', 3000);
   }
 });
-
-document.getElementById("logoutBtn").addEventListener("click",()=>{
-  conteudo.style.display="none";
-  loginScreen.style.display="flex";
+logoutBtn.addEventListener('click', ()=>{
+  persistAuth(false);
+  location.reload();
 });
+function persistAuth(val){ localStorage.setItem('autenticado', val ? '1' : '0'); }
 
-// 📋 Adicionar Colaborador
-document.getElementById("addColabBtn").addEventListener("click",()=>{
-  abrirModal("colabModal");
-  document.getElementById("modalTitle").textContent="Adicionar Colaborador";
-  document.getElementById("colabForm").reset();
-  document.getElementById("colabId").value="";
-});
+/* auto-login se tinha sessão */
+if (localStorage.getItem('autenticado') === '1') {
+  loginScreen.style.display = 'none';
+  mainApp.classList.remove('hidden');
+  renderAll();
+}
 
-document.getElementById("colabForm").addEventListener("submit", async(e)=>{
-  e.preventDefault();
-  const id=document.getElementById("colabId").value;
-  const nome=document.getElementById("colabNome").value;
-  const email=document.getElementById("colabEmail").value;
-  const matricula=document.getElementById("colabMatricula").value;
-  const cargo=document.getElementById("colabCargo").value;
-  const turno=document.getElementById("colabTurno").value;
+/* ---------------- RELÓGIO ---------------- */
+function atualizarRelogio(){
+  const now = new Date();
+  clockEl.textContent = now.toLocaleTimeString('pt-BR', {hour12:false});
+}
+setInterval(atualizarRelogio, 1000);
+atualizarRelogio();
 
-  if(id){
-    await updateDoc(doc(db,"colaboradores",id),{nome,email,matricula,cargo,turno});
-    alert("Colaborador atualizado!");
-  }else{
-    await addDoc(colabsRef,{nome,email,matricula,cargo,turno});
-    alert("Colaborador adicionado!");
-  }
-  fecharModal("colabModal");
-});
+/* ---------------- UTIL ---------------- */
+function salvarLocal(){
+  localStorage.setItem('colaboradores', JSON.stringify(colaboradores));
+  localStorage.setItem('pontos', JSON.stringify(pontos));
+}
+function escapeHtml(s){ if(!s && s!==0) return ''; return String(s).replace(/[&<>"'`=\/]/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D'}[ch])); }
+function gerarIdColab(){ let max = 0; colaboradores.forEach(c=>{ if(Number(c.id)>max) max = Number(c.id); }); return max + 1; }
 
-// 🧾 Editar
-document.getElementById("editColabBtn").addEventListener("click",()=>{
-  const id=prompt("Digite o ID do colaborador para editar:");
-  if(!id)return;
-  const colab=colabs.find(c=>c.id===id);
-  if(!colab)return alert("ID não encontrado!");
-  abrirModal("colabModal");
-  document.getElementById("modalTitle").textContent="Editar Colaborador";
-  document.getElementById("colabId").value=colab.id;
-  document.getElementById("colabNome").value=colab.nome;
-  document.getElementById("colabEmail").value=colab.email;
-  document.getElementById("colabMatricula").value=colab.matricula;
-  document.getElementById("colabCargo").value=colab.cargo;
-  document.getElementById("colabTurno").value=colab.turno;
-});
-
-// ❌ Excluir
-document.getElementById("deleteColabBtn").addEventListener("click",async()=>{
-  const id=prompt("Digite o ID do colaborador para excluir:");
-  if(!id)return;
-  if(confirm("Deseja realmente excluir?")){
-    await deleteDoc(doc(db,"colaboradores",id));
-    alert("Colaborador removido!");
-  }
-});
-
-// 🧠 Renderizar tabela
-const colabBody=document.getElementById("colabBody");
-const search=document.getElementById("search");
-let colabs=[];
-
-onSnapshot(query(colabsRef,orderBy("nome")),snap=>{
-  colabs=[];
-  snap.forEach(docu=>colabs.push({id:docu.id,...docu.data()}));
-  renderColabs();
-});
-
-function renderColabs(){
-  const termo=search.value.toLowerCase();
-  const lista=colabs.filter(c=>c.nome.toLowerCase().includes(termo)||c.matricula.toLowerCase().includes(termo));
-  colabBody.innerHTML="";
-  lista.forEach((c,i)=>{
-    const tr=document.createElement("tr");
-    tr.innerHTML=`
-      <td>${i+1}</td>
-      <td>${c.id}</td>
-      <td>${c.nome}</td>
-      <td>${c.matricula} <span class="small">(${c.email})</span></td>
-      <td>${c.cargo}</td>
-      <td>${c.turno}</td>
-      <td>
-        <button class="edit" onclick="editarColab('${c.id}')">✏️</button>
-        <button class="del" onclick="removerColab('${c.id}')">🗑️</button>
-      </td>`;
+/* ---------------- RENDER ---------------- */
+function renderColaboradores(){
+  const term = (searchInput.value||'').toLowerCase().trim();
+  colabBody.innerHTML = '';
+  colaboradores.forEach((c, idx) => {
+    if(term && !(String(c.nome).toLowerCase().includes(term) || String(c.matricula).toLowerCase().includes(term) || String(c.email||'').toLowerCase().includes(term))) return;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${idx+1}</td>
+      <td>${escapeHtml(c.id)}</td>
+      <td>${escapeHtml(c.nome)}</td>
+      <td>${escapeHtml(c.matricula)} <span class="small">(${escapeHtml(c.email||'')})</span></td>
+      <td>${escapeHtml(c.turno||'')}</td>
+      <td class="flex-row">
+        <button class="edit" onclick="editarColab('${c.id}')">Editar</button>
+        <button class="del" onclick="removerColabPrompt('${c.id}')">Excluir</button>
+        <button class="secondary" style="background:#e8f5e9;color:#111;margin-left:6px" onclick="registrarPontoPrompt('${c.id}','Entrada')">Entrada</button>
+        <button class="secondary" style="background:#e3f2fd;color:#111" onclick="registrarPontoPrompt('${c.id}','Saída')">Saída</button>
+      </td>
+    `;
     colabBody.appendChild(tr);
   });
 }
 
-search.addEventListener("input",renderColabs);
-
-// editar/excluir direto na tabela
-window.editarColab=(id)=>{
-  const colab=colabs.find(c=>c.id===id);
-  if(!colab)return;
-  abrirModal("colabModal");
-  document.getElementById("modalTitle").textContent="Editar Colaborador";
-  document.getElementById("colabId").value=colab.id;
-  document.getElementById("colabNome").value=colab.nome;
-  document.getElementById("colabEmail").value=colab.email;
-  document.getElementById("colabMatricula").value=colab.matricula;
-  document.getElementById("colabCargo").value=colab.cargo;
-  document.getElementById("colabTurno").value=colab.turno;
+function renderPontos(){
+  pontosBody.innerHTML = '';
+  pontos.forEach((p, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${i+1}</td>
+      <td>${escapeHtml(p.id)}</td>
+      <td>${escapeHtml(p.nome)}</td>
+      <td>${escapeHtml(p.matricula)}</td>
+      <td>${escapeHtml(p.email||'')}</td>
+      <td>${escapeHtml(p.tipo)}</td>
+      <td>${escapeHtml(p.data)}</td>
+      <td>${escapeHtml(p.hora)}</td>
+      <td>
+        <button class="del" onclick="removerPonto(${i})">Excluir</button>
+      </td>
+    `;
+    pontosBody.appendChild(tr);
+  });
 }
 
-window.removerColab=async(id)=>{
-  if(confirm("Tem certeza que deseja excluir este colaborador?")){
-    await deleteDoc(doc(db,"colaboradores",id));
-    alert("Removido!");
+function renderAll(){
+  renderColaboradores();
+  renderPontos();
+}
+
+/* ---------------- COLABORADORES: CRUD ---------------- */
+addColabBtn.addEventListener('click', ()=> openColabModal());
+editColabBtn.addEventListener('click', ()=>{
+  const id = prompt('Digite o ID do colaborador para editar:');
+  if(id) openColabModal(id);
+});
+deleteColabBtn.addEventListener('click', ()=>{
+  const id = prompt('Digite o ID do colaborador para excluir:');
+  if(id) removerColabPrompt(id);
+});
+
+function openColabModal(id){
+  if(id){
+    const c = colaboradores.find(x=>String(x.id) === String(id));
+    if(!c) return alert('Colaborador não encontrado.');
+    colabIdInput.value = c.id;
+    colabNomeInput.value = c.nome;
+    colabMatInput.value = c.matricula;
+    colabEmailInput.value = c.email || '';
+    colabTurnoInput.value = c.turno || '';
+    document.getElementById('colabTitle').textContent = 'Editar Colaborador';
+  } else {
+    colabIdInput.value = '';
+    colabNomeInput.value = '';
+    colabMatInput.value = '';
+    colabEmailInput.value = '';
+    colabTurnoInput.value = '';
+    document.getElementById('colabTitle').textContent = 'Novo Colaborador';
   }
+  colabModal.classList.remove('hidden');
+}
+cancelColabBtn.addEventListener('click', ()=> colabModal.classList.add('hidden'));
+saveColabBtn.addEventListener('click', ()=>{
+  const idVal = colabIdInput.value ? String(colabIdInput.value) : '';
+  const nome = colabNomeInput.value.trim();
+  const mat = colabMatInput.value.trim();
+  const email = colabEmailInput.value.trim();
+  const turno = colabTurnoInput.value.trim();
+  if(!nome) return alert('Preencha o nome.');
+  if(idVal){
+    // editar
+    const idx = colaboradores.findIndex(x=>String(x.id)===String(idVal));
+    if(idx === -1) return alert('Colaborador não encontrado.');
+    colaboradores[idx] = { id: idVal, nome, matricula: mat, email, turno };
+  } else {
+    // novo
+    const novoId = gerarIdColab();
+    colaboradores.push({ id: String(novoId), nome, matricula: mat, email, turno });
+  }
+  salvarLocal();
+  renderAll();
+  colabModal.classList.add('hidden');
+});
+
+window.editarColab = function(id){
+  openColabModal(id);
+};
+
+function removerColabPrompt(id){
+  if(!confirm('Confirma exclusão do colaborador ID ' + id + ' ?')) return;
+  const idx = colaboradores.findIndex(x=>String(x.id) === String(id));
+  if(idx === -1) return alert('Colaborador não encontrado.');
+  colaboradores.splice(idx,1);
+  salvarLocal();
+  renderAll();
 }
 
-// modal funções
-window.abrirModal=(id)=>document.getElementById(id).style.display="flex";
-window.fecharModal=(id)=>document.getElementById(id).style.display="none";
+/* ---------------- PONTOS ---------------- */
+entradaBtn.addEventListener('click', ()=> {
+  const id = prompt('Digite o ID do colaborador para registrar Entrada:');
+  if(id) registrarPontoPrompt(id,'Entrada');
+});
+saidaBtn.addEventListener('click', ()=> {
+  const id = prompt('Digite o ID do colaborador para registrar Saída:');
+  if(id) registrarPontoPrompt(id,'Saída');
+});
+
+function registrarPontoPrompt(colabId, tipo){
+  const c = colaboradores.find(x=>String(x.id) === String(colabId));
+  if(!c) return alert('Colaborador não encontrado.');
+  registrarPonto(c, tipo);
+}
+
+function registrarPonto(colab, tipo){
+  const now = new Date();
+  const data = now.toLocaleDateString('pt-BR');
+  const hora = now.toLocaleTimeString('pt-BR', {hour12:false});
+  pontos.push({
+    id: String(colab.id),
+    nome: colab.nome,
+    matricula: colab.matricula,
+    email: colab.email || '',
+    tipo, data, hora
+  });
+  salvarLocal();
+  renderPontos();
+  alert(`${colab.nome} registrou ${tipo} às ${hora}`);
+}
+
+window.removerPonto = function(index){
+  if(!confirm('Excluir este registro?')) return;
+  pontos.splice(index,1);
+  salvarLocal();
+  renderPontos();
+};
+
+/* limpar todos os pontos */
+limparTodosBtn.addEventListener('click', ()=>{
+  if(pontos.length === 0) return alert('Nenhum ponto para limpar.');
+  if(confirm('Deseja apagar TODOS os pontos registrados?')){
+    pontos = [];
+    salvarLocal();
+    renderPontos();
+    alert('Todos os pontos foram removidos.');
+  }
+});
+
+/* ---------------- EXPORTAR PLANILHA ---------------- */
+baixarBtn.addEventListener('click', ()=>{
+  if(pontos.length === 0) return alert('Nenhum ponto registrado ainda.');
+  // criar cópia com cabeçalhos amigáveis
+  const rows = pontos.map((p, i)=>({
+    Numero: i+1,
+    ID_Colaborador: p.id,
+    Nome: p.nome,
+    Matricula: p.matricula,
+    Email: p.email,
+    Tipo: p.tipo,
+    Data: p.data,
+    Hora: p.hora
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Pontos');
+  XLSX.writeFile(wb, 'registros_ponto.xlsx');
+});
+
+/* ---------------- PESQUISA ---------------- */
+searchInput.addEventListener('input', renderAll);
+
+/* ---------------- INICIALIZAR ---------------- */
+renderAll();
+
+/* Expor algumas funções para uso via onclick inline nas rows */
+window.registrarPontoPrompt = registrarPontoPrompt;
+window.removerColabPrompt = removerColabPrompt;
+window.editarColab = window.editarColab;
 </script>
 </body>
 </html>
