@@ -5,32 +5,32 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Ponto Eletrônico - Firebase</title>
 <style>
-  /* MESMO CSS do anterior */
-  :root{--blue:#003366;--green:#4CAF50;--yellow:#ff9800;--red:#f44336;}
-  body{font-family:Arial,Helvetica,sans-serif;background:#f7f9fc;margin:0}
-  header{background:var(--blue);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-  .logo{font-weight:700}
-  #clock{font-weight:700}
-  .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  button{padding:8px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:600}
-  .add{background:var(--green);color:#fff}
-  .edit{background:#2196F3;color:#fff}
-  .del{background:#f44336;color:#fff}
-  .download{background:var(--yellow);color:#111}
-  .secondary{background:#e0e0e0;color:#222}
-  main{padding:18px;max-width:1100px;margin:18px auto}
-  .search{width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;margin-bottom:12px}
-  table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,0.06)}
-  th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;font-size:14px}
-  th{background:#fafafa;font-weight:700}
-  tr:hover td{background:#fbfbfb}
-  .small{font-size:13px;color:#666;margin-left:6px}
-  .muted{color:#666;font-size:13px}
-  .flex-row{display:flex;gap:8px;align-items:center}
-  .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:999}
-  .modal-content{background:#fff;padding:20px;border-radius:10px;width:95%;max-width:420px}
-  .hidden{display:none}
-  .top-right{display:flex;gap:8px;align-items:center}
+:root{--blue:#003366;--green:#4CAF50;--yellow:#ff9800;--red:#f44336;}
+body{font-family:Arial,Helvetica,sans-serif;background:#f7f9fc;margin:0}
+header{background:var(--blue);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{font-weight:700}
+#clock{font-weight:700}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button{padding:8px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:600}
+.add{background:var(--green);color:#fff}
+.edit{background:#2196F3;color:#fff}
+.del{background:#f44336;color:#fff}
+.download{background:var(--yellow);color:#111}
+.secondary{background:#e0e0e0;color:#222}
+main{padding:18px;max-width:1100px;margin:18px auto}
+.search{width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,0.06)}
+th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;font-size:14px}
+th{background:#fafafa;font-weight:700}
+tr:hover td{background:#fbfbfb}
+.small{font-size:13px;color:#666;margin-left:6px}
+.muted{color:#666;font-size:13px}
+.flex-row{display:flex;gap:8px;align-items:center}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:999}
+.modal-content{background:#fff;padding:20px;border-radius:10px;width:95%;max-width:420px}
+.hidden{display:none}
+.top-right{display:flex;gap:8px;align-items:center}
+@media(max-width:720px){ header{flex-direction:column;align-items:flex-start} .controls{width:100%;justify-content:space-between} }
 </style>
 </head>
 <body>
@@ -44,19 +44,17 @@
     <label style="font-size:13px"><input type="checkbox" id="remember"> Lembrar login</label><br>
     <button id="loginBtn" class="add" style="width:92%;margin-top:6px">Entrar</button>
     <p id="loginMsg" style="color:crimson;margin-top:8px;height:18px"></p>
+    <p style="font-size:12px;color:#666;margin-top:6px">Usuário: <b>CLX</b> / Senha: <b>02072007</b></p>
   </div>
 </div>
 
 <header>
   <div style="display:flex;gap:12px;align-items:center">
     <div class="logo">Ponto Eletrônico</div>
-    <div id="status" class="muted">Online • Firebase</div>
+    <div id="status" class="muted">Offline • Local Storage</div>
   </div>
-
   <div id="clock">--:--:--</div>
-
   <div class="controls top-right">
-    <button class="add" id="addColabBtn">Adicionar</button>
     <button class="download" id="baixarBtn">Baixar Planilha</button>
     <button class="secondary" id="limparTodosBtn">Limpar todos os pontos</button>
     <button class="secondary" id="logoutBtn">Sair</button>
@@ -65,8 +63,8 @@
 
 <main id="mainApp" class="hidden">
   <input id="search" class="search" placeholder="🔍 Pesquisar por nome, matrícula ou e-mail">
-
   <h3>Colaboradores</h3>
+  <button class="add" id="addColabBtn">Adicionar Colaborador</button>
   <table id="colabTable">
     <thead>
       <tr>
@@ -105,120 +103,96 @@
   </div>
 </div>
 
-<!-- Firebase -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.24.0/firebase-app.js";
-import { getDatabase, ref, set, push, get, child, remove, onValue } from "https://www.gstatic.com/firebasejs/9.24.0/firebase-database.js";
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
+<script>
+// ---------------- FIREBASE ----------------
 const firebaseConfig = {
   apiKey: "AIzaSyCpBiFzqOod4K32cWMr5hfx13fw6LGcPVY",
   authDomain: "ponto-eletronico-f35f9.firebaseapp.com",
   projectId: "ponto-eletronico-f35f9",
-  storageBucket: "ponto-eletronico-f35f9.appspot.com",
+  storageBucket: "ponto-eletronico-f35f9.firebasestorage.app",
   messagingSenderId: "208638350255",
   appId: "1:208638350255:web:63d016867a67575b5e155a"
 };
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-/* LOGIN */
+// ---------------- LOGIN ----------------
+const loginBtn = document.getElementById('loginBtn');
 const loginScreen = document.getElementById('loginScreen');
 const mainApp = document.getElementById('mainApp');
-const loginBtn = document.getElementById('loginBtn');
 const loginMsg = document.getElementById('loginMsg');
-const logoutBtn = document.getElementById('logoutBtn');
 const rememberCheckbox = document.getElementById('remember');
-
-loginBtn.addEventListener('click', ()=>{
-  const u = document.getElementById('user').value.trim();
-  const p = document.getElementById('pass').value.trim();
-  if(u==='admin' && p==='1234'){
+loginBtn.addEventListener('click', () => {
+  const user = document.getElementById('user').value.trim();
+  const pass = document.getElementById('pass').value.trim();
+  if(user==='admin' && pass==='1234'){
     loginScreen.style.display='none';
     mainApp.classList.remove('hidden');
     if(rememberCheckbox.checked) localStorage.setItem('autenticado','1');
-    loadFirebaseData();
+    loadFromFirebase();
   } else {
     loginMsg.textContent='Usuário ou senha incorretos.';
-    setTimeout(()=>loginMsg.textContent='',3000);
+    setTimeout(()=> loginMsg.textContent='',3000);
   }
 });
 if(localStorage.getItem('autenticado')==='1'){
   loginScreen.style.display='none';
   mainApp.classList.remove('hidden');
-  loadFirebaseData();
+  loadFromFirebase();
 }
-logoutBtn.addEventListener('click', ()=>{
+
+document.getElementById('logoutBtn').addEventListener('click', ()=> {
   localStorage.removeItem('autenticado');
   location.reload();
 });
 
-/* RELÓGIO */
-const clockEl=document.getElementById('clock');
-function atualizarRelogio(){ clockEl.textContent=new Date().toLocaleTimeString('pt-BR',{hour12:false}); }
-setInterval(atualizarRelogio,1000);
-atualizarRelogio();
+// ---------------- RELÓGIO ----------------
+const clockEl = document.getElementById('clock');
+setInterval(()=> clockEl.textContent=new Date().toLocaleTimeString('pt-BR',{hour12:false}),1000);
 
-/* ELEMENTOS */
-const addColabBtn=document.getElementById('addColabBtn');
-const baixarBtn=document.getElementById('baixarBtn');
-const limparTodosBtn=document.getElementById('limparTodosBtn');
-const searchInput=document.getElementById('search');
-const colabBody=document.getElementById('colabBody');
-const pontosBody=document.getElementById('pontosBody');
-
-const colabModal=document.getElementById('colabModal');
-const colabIdInput=document.getElementById('colabId');
-const colabNomeInput=document.getElementById('colabNome');
-const colabMatInput=document.getElementById('colabMatricula');
-const colabEmailInput=document.getElementById('colabEmail');
-const colabTurnoInput=document.getElementById('colabTurno');
-const saveColabBtn=document.getElementById('saveColabBtn');
-const cancelColabBtn=document.getElementById('cancelColabBtn');
-
+// ---------------- DADOS ----------------
 let colaboradores = [];
 let pontos = [];
 
-/* FUNÇÕES FIREBASE */
-function loadFirebaseData(){
-  const colRef = ref(db, 'colaboradores');
-  onValue(colRef, (snapshot)=>{
-    colaboradores = snapshot.val() ? Object.values(snapshot.val()) : [];
+const colabBody = document.getElementById('colabBody');
+const pontosBody = document.getElementById('pontosBody');
+const searchInput = document.getElementById('search');
+
+function salvarFirebase(){
+  db.ref('colaboradores').set(colaboradores);
+  db.ref('pontos').set(pontos);
+}
+
+function loadFromFirebase(){
+  db.ref('colaboradores').on('value', snap => {
+    colaboradores = snap.val() || [];
     renderColaboradores();
   });
-
-  const ptsRef = ref(db, 'pontos');
-  onValue(ptsRef, (snapshot)=>{
-    pontos = snapshot.val() ? Object.values(snapshot.val()) : [];
+  db.ref('pontos').on('value', snap => {
+    pontos = snap.val() || [];
     renderPontos();
   });
 }
 
-function salvarFirebaseColab(col){
-  if(col.id){
-    set(ref(db,'colaboradores/'+col.id), col);
-  } else {
-    const newRef = push(ref(db,'colaboradores'));
-    col.id = newRef.key;
-    set(newRef,col);
-  }
-}
-function removerFirebaseColab(id){ remove(ref(db,'colaboradores/'+id)); }
-function salvarFirebasePonto(p){ push(ref(db,'pontos'),p); }
-function removerFirebasePonto(key){ remove(ref(db,'pontos/'+key)); }
+// ---------------- RENDER ----------------
+function escapeHtml(s){ if(!s && s!==0) return ''; return String(s).replace(/[&<>"'`=\/]/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D'}[ch])); }
 
-/* RENDER */
 function renderColaboradores(){
   const term=(searchInput.value||'').toLowerCase().trim();
   colabBody.innerHTML='';
   colaboradores.forEach((c,idx)=>{
-    if(term && !(c.nome.toLowerCase().includes(term) || c.matricula.toLowerCase().includes(term) || (c.email||'').toLowerCase().includes(term))) return;
+    if(term && !(String(c.nome).toLowerCase().includes(term) || String(c.matricula).toLowerCase().includes(term) || String(c.email||'').toLowerCase().includes(term))) return;
     const tr=document.createElement('tr');
     tr.innerHTML=`
       <td>${idx+1}</td>
-      <td>${c.id}</td>
-      <td>${c.nome}</td>
-      <td>${c.matricula} <span class="small">(${c.email||''})</span></td>
-      <td>${c.turno||''}</td>
+      <td>${escapeHtml(c.id)}</td>
+      <td>${escapeHtml(c.nome)}</td>
+      <td>${escapeHtml(c.matricula)} <span class="small">(${escapeHtml(c.email||'')})</span></td>
+      <td>${escapeHtml(c.turno||'')}</td>
       <td class="flex-row">
         <button class="edit" onclick="editarColab('${c.id}')">Editar</button>
         <button class="del" onclick="removerColabPrompt('${c.id}')">Excluir</button>
@@ -229,24 +203,70 @@ function renderColaboradores(){
     colabBody.appendChild(tr);
   });
 }
+
 function renderPontos(){
   pontosBody.innerHTML='';
   pontos.forEach((p,i)=>{
     const tr=document.createElement('tr');
     tr.innerHTML=`
       <td>${i+1}</td>
-      <td>${p.id}</td>
-      <td>${p.nome}</td>
-      <td>${p.matricula}</td>
-      <td>${p.email||''}</td>
-      <td>${p.tipo}</td>
-      <td>${p.data}</td>
-      <td>${p.hora}</td>
-      <td><button class="del" onclick="removerPonto('${p.key}')">Excluir</button></td>
+      <td>${escapeHtml(p.id)}</td>
+      <td>${escapeHtml(p.nome)}</td>
+      <td>${escapeHtml(p.matricula)}</td>
+      <td>${escapeHtml(p.email||'')}</td>
+      <td>${escapeHtml(p.tipo)}</td>
+      <td>${escapeHtml(p.data)}</td>
+      <td>${escapeHtml(p.hora)}</td>
+      <td><button class="del" onclick="removerPonto(${i})">Excluir</button></td>
     `;
     pontosBody.appendChild(tr);
   });
 }
+
+// ---------------- CRUD ----------------
+document.getElementById('addColabBtn').addEventListener('click', ()=>openColabModal());
+
+window.editarColab = function(id){ openColabModal(id); }
+
+window.removerColabPrompt = function(id){
+  if(!confirm('Confirma exclusão do colaborador ID '+id+' ?')) return;
+  colaboradores = colaboradores.filter(x=>String(x.id)!==String(id));
+  salvarFirebase();
+}
+
+function registrarPontoPrompt(colabId,tipo){
+  const c=colaboradores.find(x=>String(x.id)===String(colabId));
+  if(!c) return alert('Colaborador não encontrado.');
+  const now = new Date();
+  const data=now.toLocaleDateString('pt-BR');
+  const hora=now.toLocaleTimeString('pt-BR',{hour12:false});
+  pontos.push({id:c.id,nome:c.nome,matricula:c.matricula,email:c.email||'',tipo,data,hora});
+  salvarFirebase();
+  alert(`${c.nome} registrou ${tipo} às ${hora}`);
+}
+
+window.removerPonto=function(index){
+  if(!confirm('Excluir este registro?')) return;
+  pontos.splice(index,1);
+  salvarFirebase();
+}
+
+searchInput.addEventListener('input', renderColaboradores);
+document.getElementById('limparTodosBtn').addEventListener('click', ()=>{
+  if(confirm('Deseja apagar TODOS os pontos registrados?')){
+    pontos=[];
+    salvarFirebase();
+  }
+});
+
+document.getElementById('baixarBtn').addEventListener('click', ()=>{
+  if(pontos.length===0) return alert('Nenhum ponto registrado ainda.');
+  const rows=pontos.map((p,i)=>({Numero:i+1,ID_Colaborador:p.id,Nome:p.nome,Matricula:p.matricula,Email:p.email,Tipo:p.tipo,Data:p.data,Hora:p.hora}));
+  const ws=XLSX.utils.json_to_sheet(rows);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Pontos');
+  XLSX.writeFile(wb,'registros_ponto.xlsx');
+});
 </script>
 </body>
 </html>
