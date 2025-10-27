@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema de Ponto Eletrônico</title>
+<title>Ponto Eletrônico Firebase</title>
 <style>
   body { font-family: Arial, sans-serif; background: #eef2f5; margin: 0; }
   header { background: #007bff; color: white; padding: 10px; text-align: center; }
@@ -13,7 +13,7 @@
   button:hover { background: #0056b3; }
   table { width: 100%; border-collapse: collapse; margin-top: 10px; }
   th, td { padding: 8px; border-bottom: 1px solid #ddd; text-align: left; }
-  input, select { padding: 5px; border-radius: 5px; border: 1px solid #ccc; }
+  input { padding: 6px; border-radius: 5px; border: 1px solid #ccc; }
   #loginBox { text-align: center; margin-top: 100px; }
 </style>
 </head>
@@ -21,19 +21,22 @@
 
 <header><h1>Ponto Eletrônico</h1></header>
 
+<!-- LOGIN -->
 <div id="loginBox">
   <h2>Login</h2>
   <input type="text" id="loginUser" placeholder="Usuário"><br><br>
   <input type="password" id="loginPass" placeholder="Senha"><br><br>
   <label><input type="checkbox" id="lembrarLogin"> Lembrar login</label><br><br>
-  <button onclick="fazerLogin()">Entrar</button>
+  <button id="btnEntrar">Entrar</button>
+  <p style="color:#555;font-size:13px;">Usuário: <b>CLX</b> / Senha: <b>02072007</b></p>
 </div>
 
+<!-- APP -->
 <div class="container" id="app" style="display:none;">
   <div class="card">
     <h2>Cadastro de Colaborador</h2>
     <input type="text" id="nomeColab" placeholder="Nome do colaborador">
-    <button onclick="addColaborador()">Adicionar</button>
+    <button id="btnAddColab">Adicionar</button>
   </div>
 
   <div class="card">
@@ -48,20 +51,20 @@
     <table id="tabelaPonto">
       <tr><th>Colaborador</th><th>Entrada</th><th>Saída</th></tr>
     </table>
-    <button onclick="limparTodosPontos()">Limpar Todos</button>
-    <button onclick="exportarExcel()">Exportar Excel</button>
+    <button id="btnLimpar">Limpar Todos</button>
+    <button id="btnExportar">Exportar Excel</button>
   </div>
 </div>
 
-<!-- Biblioteca para gerar Excel -->
+<!-- XLSX -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
+<!-- FIREBASE -->
 <script type="module">
-// -------------------- FIREBASE CONFIG --------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
-import {
-  getFirestore, collection, addDoc, getDocs,
-  doc, deleteDoc, query, where
+import { 
+  getFirestore, collection, addDoc, getDocs, 
+  deleteDoc, doc, query, where 
 } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -75,130 +78,93 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// -------------------- LOGIN --------------------
-function fazerLogin() {
-  const user = document.getElementById('loginUser').value;
-  const pass = document.getElementById('loginPass').value;
-  const lembrar = document.getElementById('lembrarLogin').checked;
-
-  if (user === "CLX" && pass === "02072007") {
-    if (lembrar) localStorage.setItem("loginSalvo", "CLX");
-    document.getElementById('loginBox').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-  } else {
-    alert("Login ou senha incorretos!");
-  }
-}
-
-window.onload = () => {
-  const salvo = localStorage.getItem("loginSalvo");
-  if (salvo === "CLX") {
-    document.getElementById('loginBox').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-  }
-};
-
-// -------------------- VARIÁVEIS --------------------
 let colaboradores = [];
 
-// -------------------- CADASTRAR COLABORADOR --------------------
-async function addColaborador() {
-  const nome = document.getElementById('nomeColab').value.trim();
-  if (!nome) return alert("Digite o nome do colaborador!");
+/* LOGIN */
+document.getElementById("btnEntrar").addEventListener("click", () => {
+  const user = document.getElementById("loginUser").value.trim();
+  const pass = document.getElementById("loginPass").value.trim();
+  const lembrar = document.getElementById("lembrarLogin").checked;
 
+  if (user === "CLX" && pass === "02072007") {
+    if (lembrar) localStorage.setItem("lembrarLogin", "1");
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    carregarDados();
+  } else {
+    alert("Usuário ou senha incorretos!");
+  }
+});
+
+// Se login salvo
+window.addEventListener("load", () => {
+  if (localStorage.getItem("lembrarLogin") === "1") {
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    carregarDados();
+  }
+});
+
+/* FUNÇÕES PRINCIPAIS */
+async function addColaborador() {
+  const nome = document.getElementById("nomeColab").value.trim();
+  if (!nome) return alert("Digite o nome!");
   const docRef = await addDoc(collection(db, "colaboradores"), { nome });
   colaboradores.push({ id: docRef.id, nome });
   renderColab();
-  document.getElementById('nomeColab').value = '';
+  document.getElementById("nomeColab").value = "";
 }
 
-// -------------------- RENDERIZAR COLABORADORES --------------------
 function renderColab() {
-  const tabela = document.getElementById('tabelaColab');
+  const tabela = document.getElementById("tabelaColab");
   tabela.innerHTML = "<tr><th>Nome</th><th>Ações</th></tr>";
   colaboradores.forEach(c => {
-    const row = tabela.insertRow();
-    row.insertCell(0).innerText = c.nome;
-    const acoes = row.insertCell(1);
-    acoes.innerHTML = `
-      <button onclick="baterEntrada('${c.id}', '${c.nome}')">Entrada</button>
-      <button onclick="baterSaida('${c.id}', '${c.nome}')">Saída</button>
-      <button onclick="removerColabPrompt('${c.id}')">Excluir</button>
+    const tr = tabela.insertRow();
+    tr.insertCell(0).textContent = c.nome;
+    tr.insertCell(1).innerHTML = `
+      <button onclick="baterEntrada('${c.id}','${c.nome}')">Entrada</button>
+      <button onclick="baterSaida('${c.id}','${c.nome}')">Saída</button>
+      <button onclick="removerColab('${c.id}')">Excluir</button>
     `;
   });
 }
 
-// -------------------- BATER ENTRADA --------------------
-async function baterEntrada(id, nome) {
+window.baterEntrada = async (id, nome) => {
   const hora = new Date().toLocaleString();
   await addDoc(collection(db, "pontos"), { idColab: id, nome, entrada: hora, saida: "" });
   renderPontos();
-}
+};
 
-// -------------------- BATER SAÍDA --------------------
-async function baterSaida(id, nome) {
+window.baterSaida = async (id, nome) => {
   const hora = new Date().toLocaleString();
   await addDoc(collection(db, "pontos"), { idColab: id, nome, entrada: "", saida: hora });
   renderPontos();
-}
+};
 
-// -------------------- LISTAR PONTOS --------------------
+window.removerColab = async (id) => {
+  if (!confirm("Excluir colaborador e pontos?")) return;
+  await deleteDoc(doc(db, "colaboradores", id));
+  const q = query(collection(db, "pontos"), where("idColab", "==", id));
+  const snap = await getDocs(q);
+  snap.forEach(async d => await deleteDoc(doc(db, "pontos", d.id)));
+  colaboradores = colaboradores.filter(c => c.id !== id);
+  renderColab();
+  renderPontos();
+};
+
 async function renderPontos() {
-  const tabela = document.getElementById('tabelaPonto');
+  const tabela = document.getElementById("tabelaPonto");
   tabela.innerHTML = "<tr><th>Colaborador</th><th>Entrada</th><th>Saída</th></tr>";
   const snap = await getDocs(collection(db, "pontos"));
   snap.forEach(d => {
     const p = d.data();
-    const row = tabela.insertRow();
-    row.insertCell(0).innerText = p.nome;
-    row.insertCell(1).innerText = p.entrada || "-";
-    row.insertCell(2).innerText = p.saida || "-";
+    const tr = tabela.insertRow();
+    tr.insertCell(0).textContent = p.nome;
+    tr.insertCell(1).textContent = p.entrada || "-";
+    tr.insertCell(2).textContent = p.saida || "-";
   });
 }
 
-// -------------------- EXCLUIR COLABORADOR PERMANENTEMENTE --------------------
-async function removerColabPrompt(id) {
-  if (confirm("Deseja excluir este colaborador e seus pontos?")) {
-    await deleteDoc(doc(db, "colaboradores", id));
-
-    const q = query(collection(db, "pontos"), where("idColab", "==", id));
-    const snap = await getDocs(q);
-    snap.forEach(async (d) => {
-      await deleteDoc(doc(db, "pontos", d.id));
-    });
-
-    colaboradores = colaboradores.filter(c => c.id !== id);
-    renderColab();
-    renderPontos();
-  }
-}
-
-// -------------------- LIMPAR TODOS OS PONTOS --------------------
-async function limparTodosPontos() {
-  if (confirm("Deseja apagar todos os pontos?")) {
-    const snap = await getDocs(collection(db, "pontos"));
-    snap.forEach(async (d) => {
-      await deleteDoc(doc(db, "pontos", d.id));
-    });
-    renderPontos();
-  }
-}
-
-// -------------------- EXPORTAR PARA EXCEL --------------------
-async function exportarExcel() {
-  const snap = await getDocs(collection(db, "pontos"));
-  const registros = [];
-  snap.forEach(d => registros.push(d.data()));
-
-  if (registros.length === 0) return alert("Nenhum ponto registrado.");
-
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(registros);
-  XLSX.utils.book_append_sheet(wb, ws, "Pontos");
-  XLSX.writeFile(wb, "pontos.xlsx");
-}
-
-// -------------------- CARREGAR DADOS INICIAIS --------------------
 async function carregarDados() {
   const snapColab = await getDocs(collection(db, "colaboradores"));
   colaboradores = [];
@@ -207,8 +173,25 @@ async function carregarDados() {
   renderPontos();
 }
 
-carregarDados();
-
+/* BOTÕES */
+document.getElementById("btnAddColab").addEventListener("click", addColaborador);
+document.getElementById("btnLimpar").addEventListener("click", async () => {
+  if (!confirm("Apagar todos os pontos?")) return;
+  const snap = await getDocs(collection(db, "pontos"));
+  snap.forEach(async d => await deleteDoc(doc(db, "pontos", d.id)));
+  renderPontos();
+});
+document.getElementById("btnExportar").addEventListener("click", async () => {
+  const snap = await getDocs(collection(db, "pontos"));
+  const dados = [];
+  snap.forEach(d => dados.push(d.data()));
+  if (dados.length === 0) return alert("Sem registros!");
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(dados);
+  XLSX.utils.book_append_sheet(wb, ws, "Pontos");
+  XLSX.writeFile(wb, "pontos.xlsx");
+});
 </script>
+
 </body>
 </html>
