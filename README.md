@@ -1,79 +1,121 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ponto Eletrônico</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ponto Eletrônico - Firebase</title>
+<style>
+:root{--blue:#003366;--green:#4CAF50;--yellow:#ff9800;--red:#f44336;}
+body{font-family:Arial,Helvetica,sans-serif;background:#f7f9fc;margin:0}
+header{background:var(--blue);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{font-weight:700}
+#clock{font-weight:700}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button{padding:8px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:600}
+.add{background:var(--green);color:#fff}
+.edit{background:#2196F3;color:#fff}
+.del{background:#f44336;color:#fff}
+.download{background:var(--yellow);color:#111}
+.secondary{background:#e0e0e0;color:#222}
+main{padding:18px;max-width:1100px;margin:18px auto}
+.search{width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,0.06)}
+th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;font-size:14px}
+th{background:#fafafa;font-weight:700}
+tr:hover td{background:#fbfbfb}
+.small{font-size:13px;color:#666;margin-left:6px}
+.muted{color:#666;font-size:13px}
+.flex-row{display:flex;gap:8px;align-items:center}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:999}
+.modal-content{background:#fff;padding:20px;border-radius:10px;width:95%;max-width:420px}
+.hidden{display:none}
+.top-right{display:flex;gap:8px;align-items:center}
+@media(max-width:720px){ header{flex-direction:column;align-items:flex-start} .controls{width:100%;justify-content:space-between} }
+</style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+<body>
 
 <!-- LOGIN -->
-<div id="loginScreen" class="bg-white p-6 rounded-2xl shadow-lg w-80">
-  <h2 class="text-2xl font-bold text-center mb-4 text-blue-600">Login</h2>
-  <input id="user" type="text" placeholder="Usuário" class="border rounded w-full p-2 mb-3">
-  <input id="pass" type="password" placeholder="Senha" class="border rounded w-full p-2 mb-3">
-  <button id="loginBtn" class="bg-blue-600 text-white w-full py-2 rounded hover:bg-blue-700">Entrar</button>
-  <label class="flex items-center mt-3 text-sm text-gray-600">
-    <input type="checkbox" id="lembrarLogin" class="mr-2"> Lembrar login
-  </label>
-  <p class="text-center text-sm text-gray-500 mt-3">
-    Usuário: <b>CLX</b> / Senha: <b>02072007</b>
-  </p>
+<div id="loginScreen" style="position:fixed;inset:0;background:var(--blue);display:flex;align-items:center;justify-content:center;z-index:9999">
+  <div style="background:#fff;padding:28px;border-radius:10px;width:92%;max-width:360px;text-align:center">
+    <h2 style="margin:0 0 8px">Login do Sistema</h2>
+    <input id="user" placeholder="Usuário" style="width:92%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ccc"><br>
+    <input id="pass" type="password" placeholder="Senha" style="width:92%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ccc"><br>
+    <label style="font-size:13px"><input type="checkbox" id="remember"> Lembrar login</label><br>
+    <button id="loginBtn" class="add" style="width:92%;margin-top:6px">Entrar</button>
+    <p id="loginMsg" style="color:crimson;margin-top:8px;height:18px"></p>
+    <p style="font-size:12px;color:#666;margin-top:6px">Usuário: <b>CLX</b> / Senha: <b>02072007</b></p>
+  </div>
 </div>
 
-<!-- SISTEMA -->
-<div id="app" class="hidden container mx-auto p-4">
-  <h1 class="text-3xl font-bold text-center mb-6 text-blue-600">Ponto Eletrônico</h1>
+<header>
+  <div style="display:flex;gap:12px;align-items:center">
+    <div class="logo">Ponto Eletrônico</div>
+    <div id="status" class="muted">Offline • Local Storage</div>
+  </div>
+  <div id="clock">--:--:--</div>
+  <div class="controls top-right">
+    <button class="download" id="baixarBtn">Baixar Planilha</button>
+    <button class="secondary" id="limparTodosBtn">Limpar todos os pontos</button>
+    <button class="secondary" id="logoutBtn">Sair</button>
+  </div>
+</header>
 
-  <div class="flex justify-between mb-4">
-    <button id="novoColabBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">+ Novo Colaborador</button>
-    <div>
-      <button id="baixarBtn" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 mr-2">Baixar Excel</button>
-      <button id="limparTodosBtn" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Limpar Todos</button>
+<main id="mainApp" class="hidden">
+  <input id="search" class="search" placeholder="🔍 Pesquisar por nome, matrícula ou e-mail">
+  <h3>Colaboradores</h3>
+  <button class="add" id="addColabBtn">Adicionar Colaborador</button>
+  <table id="colabTable">
+    <thead>
+      <tr>
+        <th>#</th><th>ID</th><th>Nome</th><th>Matrícula / E-mail</th><th>Turno</th><th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="colabBody"></tbody>
+  </table>
+
+  <h3 style="margin-top:18px">Entradas Registradas</h3>
+  <table id="entradasTable">
+    <thead>
+      <tr>
+        <th>#</th><th>ID Colab</th><th>Nome</th><th>Matrícula</th><th>E-mail</th><th>Data</th><th>Hora</th><th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="entradasBody"></tbody>
+  </table>
+
+  <h3 style="margin-top:18px">Saídas Registradas</h3>
+  <table id="saidasTable">
+    <thead>
+      <tr>
+        <th>#</th><th>ID Colab</th><th>Nome</th><th>Matrícula</th><th>E-mail</th><th>Data</th><th>Hora</th><th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="saidasBody"></tbody>
+  </table>
+</main>
+
+<!-- MODAL -->
+<div id="colabModal" class="modal hidden">
+  <div class="modal-content">
+    <h3 id="colabTitle">Novo Colaborador</h3>
+    <input type="hidden" id="colabId">
+    <label>Nome</label><br><input id="colabNome" style="width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ccc">
+    <label>Matrícula</label><br><input id="colabMatricula" style="width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ccc">
+    <label>E-mail</label><br><input id="colabEmail" style="width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ccc">
+    <label>Turno</label><br><input id="colabTurno" style="width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ccc">
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+      <button id="saveColabBtn" class="add">Salvar</button>
+      <button id="cancelColabBtn" class="secondary">Cancelar</button>
     </div>
   </div>
-
-  <input id="searchInput" type="text" placeholder="Pesquisar colaborador..." class="border rounded w-full p-2 mb-4">
-
-  <div class="overflow-x-auto">
-    <table class="min-w-full bg-white rounded shadow">
-      <thead>
-        <tr class="bg-blue-600 text-white">
-          <th class="p-2">ID</th>
-          <th class="p-2">Nome</th>
-          <th class="p-2">Matrícula</th>
-          <th class="p-2">Email</th>
-          <th class="p-2">Ações</th>
-        </tr>
-      </thead>
-      <tbody id="colabTable"></tbody>
-    </table>
-  </div>
-
-  <h2 class="text-xl font-semibold mt-8 mb-2 text-gray-700">Registros de Ponto</h2>
-  <div class="overflow-x-auto">
-    <table class="min-w-full bg-white rounded shadow">
-      <thead>
-        <tr class="bg-gray-700 text-white">
-          <th class="p-2">Nome</th>
-          <th class="p-2">Tipo</th>
-          <th class="p-2">Data</th>
-          <th class="p-2">Hora</th>
-        </tr>
-      </thead>
-      <tbody id="pontoTable"></tbody>
-    </table>
-  </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script type="module">
-// Firebase
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+import { getFirestore, collection, getDocs, setDoc, doc } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
-// Configuração Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyCpBiFzqOod4K32cWMr5hfx13fw6LGcPVY",
   authDomain: "ponto-eletronico-f35f9.firebaseapp.com",
@@ -82,127 +124,153 @@ const firebaseConfig = {
   messagingSenderId: "208638350255",
   appId: "1:208638350255:web:63d016867a67575b5e155a"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-
-const loginScreen = document.getElementById("loginScreen");
-const appDiv = document.getElementById("app");
-const lembrarLogin = document.getElementById("lembrarLogin");
-
-// Login
-const savedLogin = localStorage.getItem("loginLembrado");
-if (savedLogin === "true") {
-  appDiv.classList.remove("hidden");
-  loginScreen.classList.add("hidden");
-}
-
-document.getElementById("loginBtn").addEventListener("click", () => {
-  const u = document.getElementById("user").value;
-  const p = document.getElementById("pass").value;
-  if (u === "CLX" && p === "02072007") {
-    if (lembrarLogin.checked) localStorage.setItem("loginLembrado", "true");
-    appDiv.classList.remove("hidden");
-    loginScreen.classList.add("hidden");
-  } else {
-    alert("Usuário ou senha incorretos!");
-  }
-});
 
 let colaboradores = [];
 let pontos = [];
 
-// Renderizar colaboradores
-async function renderColaboradores() {
-  const tbody = document.getElementById("colabTable");
-  tbody.innerHTML = "";
-  const querySnapshot = await getDocs(collection(db, "colaboradores"));
-  colaboradores = [];
-  querySnapshot.forEach((docSnap) => {
-    const c = { id: docSnap.id, ...docSnap.data() };
-    colaboradores.push(c);
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td class="p-2 text-center">${c.id}</td>
-      <td class="p-2">${c.nome}</td>
-      <td class="p-2">${c.matricula}</td>
-      <td class="p-2">${c.email}</td>
-      <td class="p-2 flex flex-wrap gap-2 justify-center">
-        <button class="bg-blue-500 text-white px-2 py-1 rounded" onclick="baterPonto('${c.id}','Entrada')">Entrada</button>
-        <button class="bg-yellow-500 text-white px-2 py-1 rounded" onclick="baterPonto('${c.id}','Saída')">Saída</button>
-        <button class="bg-red-600 text-white px-2 py-1 rounded" onclick="excluirColab('${c.id}')">Excluir</button>
+/* ELEMENTOS */
+const loginBtn = document.getElementById('loginBtn');
+const loginScreen = document.getElementById('loginScreen');
+const mainApp = document.getElementById('mainApp');
+const loginMsg = document.getElementById('loginMsg');
+const rememberCheckbox = document.getElementById('remember');
+const logoutBtn = document.getElementById('logoutBtn');
+
+const colabBody = document.getElementById('colabBody');
+const entradasBody = document.getElementById('entradasBody');
+const saidasBody = document.getElementById('saidasBody');
+const searchInput = document.getElementById('search');
+const baixarBtn = document.getElementById('baixarBtn');
+const limparTodosBtn = document.getElementById('limparTodosBtn');
+
+const colabModal = document.getElementById('colabModal');
+const colabIdInput = document.getElementById('colabId');
+const colabNomeInput = document.getElementById('colabNome');
+const colabMatInput = document.getElementById('colabMatricula');
+const colabEmailInput = document.getElementById('colabEmail');
+const colabTurnoInput = document.getElementById('colabTurno');
+const saveColabBtn = document.getElementById('saveColabBtn');
+const cancelColabBtn = document.getElementById('cancelColabBtn');
+
+/* LOGIN */
+loginBtn.addEventListener('click', async () => {
+  const u = document.getElementById('user').value.trim();
+  const p = document.getElementById('pass').value.trim();
+  if(u==='CLX' && p==='02072007'){
+    loginScreen.style.display='none';
+    mainApp.classList.remove('hidden');
+    if(rememberCheckbox.checked) localStorage.setItem('autenticado','1');
+    await carregarFirebase();
+  } else {
+    loginMsg.textContent='Usuário ou senha incorretos.';
+    setTimeout(()=> loginMsg.textContent='',3000);
+  }
+});
+if(localStorage.getItem('autenticado')==='1'){ loginScreen.style.display='none'; mainApp.classList.remove('hidden'); carregarFirebase(); }
+logoutBtn.addEventListener('click', ()=>{ localStorage.removeItem('autenticado'); location.reload(); });
+
+/* RELÓGIO */
+setInterval(()=> document.getElementById('clock').textContent=new Date().toLocaleTimeString('pt-BR',{hour12:false}),1000);
+
+/* FIREBASE */
+async function carregarFirebase(){
+  const colabs = await getDocs(collection(db,"colaboradores"));
+  colaboradores = colabs.docs.map(doc=>({id:doc.id,...doc.data()}));
+  const pts = await getDocs(collection(db,"pontos"));
+  pontos = pts.docs.map(doc=>({id:doc.id,...doc.data()}));
+  document.getElementById('status').textContent="Online • Firebase";
+  renderAll();
+}
+async function salvarFirebase(){
+  for(const c of colaboradores) await setDoc(doc(db,"colaboradores",c.id),c);
+  for(const p of pontos) await setDoc(doc(db,"pontos",p.id),p);
+}
+
+/* RENDER */
+function renderAll(){ renderColaboradores(); renderEntradasSaidas(); }
+function renderColaboradores(){
+  colabBody.innerHTML='';
+  colaboradores.forEach((c,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td>${i+1}</td><td>${c.id}</td><td>${c.nome}</td>
+      <td>${c.matricula} <span class="small">(${c.email||''})</span></td>
+      <td>${c.turno||''}</td>
+      <td class="flex-row">
+        <button class="add">Entrada</button>
+        <button class="secondary">Saída</button>
+        <button class="edit">Editar</button>
+        <button class="del">Excluir</button>
       </td>`;
-    tbody.appendChild(tr);
+    tr.querySelector('.add').onclick=()=>registrarPonto(c.id,'Entrada');
+    tr.querySelector('.secondary').onclick=()=>registrarPonto(c.id,'Saída');
+    tr.querySelector('.edit').onclick=()=>editarColab(c);
+    tr.querySelector('.del').onclick=()=>removerColab(c.id);
+    colabBody.appendChild(tr);
   });
-  renderPontos();
 }
-
-// Bater ponto
-window.baterPonto = async (idColab, tipo) => {
-  const colab = colaboradores.find(c => c.id === idColab);
-  if (!colab) return;
-  const now = new Date();
-  await addDoc(collection(db, "pontos"), {
-    idColab,
-    nome: colab.nome,
-    tipo,
-    data: now.toLocaleDateString('pt-BR'),
-    hora: now.toLocaleTimeString('pt-BR', { hour12: false })
+function renderEntradasSaidas(){
+  entradasBody.innerHTML=''; saidasBody.innerHTML='';
+  const entradas=pontos.filter(p=>p.tipo==='Entrada');
+  const saidas=pontos.filter(p=>p.tipo==='Saída');
+  entradas.forEach((p,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${i+1}</td><td>${p.idColab}</td><td>${p.nome}</td><td>${p.matricula}</td><td>${p.email||''}</td><td>${p.data}</td><td>${p.hora}</td><td><button class="del">Excluir</button></td>`;
+    tr.querySelector('.del').onclick=()=>excluirPonto(p.id);
+    entradasBody.appendChild(tr);
   });
-  renderPontos();
-};
-
-// Renderizar pontos
-async function renderPontos() {
-  const tbody = document.getElementById("pontoTable");
-  tbody.innerHTML = "";
-  const querySnapshot = await getDocs(collection(db, "pontos"));
-  pontos = [];
-  querySnapshot.forEach((docSnap) => {
-    const p = docSnap.data();
-    pontos.push(p);
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td class="p-2">${p.nome}</td>
-      <td class="p-2 text-center">${p.tipo}</td>
-      <td class="p-2 text-center">${p.data}</td>
-      <td class="p-2 text-center">${p.hora}</td>`;
-    tbody.appendChild(tr);
+  saidas.forEach((p,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${i+1}</td><td>${p.idColab}</td><td>${p.nome}</td><td>${p.matricula}</td><td>${p.email||''}</td><td>${p.data}</td><td>${p.hora}</td><td><button class="del">Excluir</button></td>`;
+    tr.querySelector('.del').onclick=()=>excluirPonto(p.id);
+    saidasBody.appendChild(tr);
   });
 }
 
-// Excluir colaborador
-window.excluirColab = async (id) => {
-  if (!confirm("Deseja realmente excluir este colaborador e seus pontos?")) return;
-  await deleteDoc(doc(db, "colaboradores", id));
-  const q = query(collection(db, "pontos"), where("idColab", "==", id));
-  const snapshot = await getDocs(q);
-  snapshot.forEach(async (docSnap) => {
-    await deleteDoc(doc(db, "pontos", docSnap.id));
-  });
-  renderColaboradores();
+/* FUNÇÕES */
+function registrarPonto(idColab,tipo){
+  const c=colaboradores.find(x=>x.id===idColab);
+  const now=new Date();
+  const p={id:Date.now().toString(),idColab,nome:c.nome,matricula:c.matricula,email:c.email,tipo,data:now.toLocaleDateString('pt-BR'),hora:now.toLocaleTimeString('pt-BR',{hour12:false})};
+  pontos.push(p); renderEntradasSaidas(); salvarFirebase();
+}
+function excluirPonto(id){ pontos=pontos.filter(p=>p.id!==id); renderEntradasSaidas(); salvarFirebase(); }
+function removerColab(id){ if(confirm("Deseja excluir este colaborador?")){ colaboradores=colaboradores.filter(x=>x.id!==id); pontos=pontos.filter(p=>p.idColab!==id); renderAll(); salvarFirebase(); }}
+
+/* EDITAR */
+function editarColab(c){
+  colabIdInput.value=c.id;
+  colabNomeInput.value=c.nome;
+  colabMatInput.value=c.matricula;
+  colabEmailInput.value=c.email;
+  colabTurnoInput.value=c.turno;
+  colabModal.classList.remove('hidden');
+}
+
+/* MODAL SALVAR */
+saveColabBtn.onclick=()=>{
+  const id=colabIdInput.value||Date.now().toString();
+  const c={id,nome:colabNomeInput.value,matricula:colabMatInput.value,email:colabEmailInput.value,turno:colabTurnoInput.value};
+  const idx=colaboradores.findIndex(x=>x.id===id);
+  if(idx>-1) colaboradores[idx]=c; else colaboradores.push(c);
+  renderColaboradores(); colabModal.classList.add('hidden'); salvarFirebase();
+};
+cancelColabBtn.onclick=()=>colabModal.classList.add('hidden');
+document.getElementById('addColabBtn').onclick=()=>{ colabIdInput.value=''; colabNomeInput.value=''; colabMatInput.value=''; colabEmailInput.value=''; colabTurnoInput.value=''; colabModal.classList.remove('hidden'); };
+
+/* EXPORTAR */
+baixarBtn.onclick=()=>{
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(colaboradores),'Colaboradores');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(pontos),'Pontos');
+  XLSX.writeFile(wb,'PontoEletronico.xlsx');
 };
 
-// Limpar todos os pontos
-document.getElementById("limparTodosBtn").addEventListener("click", async () => {
-  if (!confirm("Deseja realmente apagar todos os pontos?")) return;
-  const snapshot = await getDocs(collection(db, "pontos"));
-  snapshot.forEach(async (docSnap) => {
-    await deleteDoc(doc(db, "pontos", docSnap.id));
-  });
-  renderPontos();
-});
-
-// Baixar Excel
-document.getElementById("baixarBtn").addEventListener("click", () => {
-  const wb = XLSX.utils.book_new();
-  const wsColab = XLSX.utils.json_to_sheet(colaboradores);
-  const wsPontos = XLSX.utils.json_to_sheet(pontos);
-  XLSX.utils.book_append_sheet(wb, wsColab, "Colaboradores");
-  XLSX.utils.book_append_sheet(wb, wsPontos, "Pontos");
-  XLSX.writeFile(wb, "PontoEletronico.xlsx");
-});
-
-renderColaboradores();
+/* LIMPAR */
+limparTodosBtn.onclick=()=>{ if(confirm("Deseja limpar todos os pontos?")){ pontos=[]; renderEntradasSaidas(); salvarFirebase(); } };
 </script>
 </body>
 </html>
