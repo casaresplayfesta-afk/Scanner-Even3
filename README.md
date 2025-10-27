@@ -138,7 +138,7 @@ const rememberCheckbox = document.getElementById('remember');
 loginBtn.addEventListener('click', () => {
   const user = document.getElementById('user').value.trim();
   const pass = document.getElementById('pass').value.trim();
-  if(user==='admin' && pass==='1234'){
+  if(user==='CLX' && pass==='02072007'){
     loginScreen.style.display='none';
     mainApp.classList.remove('hidden');
     if(rememberCheckbox.checked) localStorage.setItem('autenticado','1');
