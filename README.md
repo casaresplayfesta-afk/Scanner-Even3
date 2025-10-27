@@ -5,32 +5,32 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Ponto Eletrônico - Final</title>
 <style>
-:root{--blue:#003366;--green:#4CAF50;--yellow:#ff9800;--red:#f44336;}
-body{font-family:Arial,Helvetica,sans-serif;background:#f7f9fc;margin:0}
-header{background:var(--blue);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.logo{font-weight:700}
-#clock{font-weight:700}
-.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-button{padding:8px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:600}
-.add{background:var(--green);color:#fff}
-.edit{background:#2196F3;color:#fff}
-.del{background:#f44336;color:#fff}
-.download{background:var(--yellow);color:#111}
-.secondary{background:#e0e0e0;color:#222}
-main{padding:18px;max-width:1100px;margin:18px auto}
-.search{width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;margin-bottom:12px}
-table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,0.06)}
-th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;font-size:14px}
-th{background:#fafafa;font-weight:700}
-tr:hover td{background:#fbfbfb}
-.small{font-size:13px;color:#666;margin-left:6px}
-.muted{color:#666;font-size:13px}
-.flex-row{display:flex;gap:8px;align-items:center}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:999}
-.modal-content{background:#fff;padding:20px;border-radius:10px;width:95%;max-width:420px}
-.hidden{display:none}
-.top-right{display:flex;gap:8px;align-items:center}
-@media(max-width:720px){ header{flex-direction:column;align-items:flex-start} .controls{width:100%;justify-content:space-between} }
+  :root{--blue:#003366;--green:#4CAF50;--yellow:#ff9800;--red:#f44336;}
+  body{font-family:Arial,Helvetica,sans-serif;background:#f7f9fc;margin:0}
+  header{background:var(--blue);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .logo{font-weight:700}
+  #clock{font-weight:700}
+  .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  button{padding:8px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:600}
+  .add{background:var(--green);color:#fff}
+  .edit{background:#2196F3;color:#fff}
+  .del{background:#f44336;color:#fff}
+  .download{background:var(--yellow);color:#111}
+  .secondary{background:#e0e0e0;color:#222}
+  main{padding:18px;max-width:1100px;margin:18px auto}
+  .search{width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,0.06)}
+  th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;font-size:14px}
+  th{background:#fafafa;font-weight:700}
+  tr:hover td{background:#fbfbfb}
+  .small{font-size:13px;color:#666;margin-left:6px}
+  .muted{color:#666;font-size:13px}
+  .flex-row{display:flex;gap:8px;align-items:center}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:999}
+  .modal-content{background:#fff;padding:20px;border-radius:10px;width:95%;max-width:420px}
+  .hidden{display:none}
+  .top-right{display:flex;gap:8px;align-items:center}
+  @media(max-width:720px){ header{flex-direction:column;align-items:flex-start} .controls{width:100%;justify-content:space-between} }
 </style>
 </head>
 <body>
@@ -110,15 +110,11 @@ tr:hover td{background:#fbfbfb}
   </div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
-<script>
-// ---------------- CONFIG ----------------
-const LOGIN_USER = 'CLX', LOGIN_PASS = '02072007';
-
-// ---------------- FIREBASE ----------------
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyCpBiFzqOod4K32cWMr5hfx13fw6LGcPVY",
   authDomain: "ponto-eletronico-f35f9.firebaseapp.com",
@@ -127,14 +123,15 @@ const firebaseConfig = {
   messagingSenderId: "208638350255",
   appId: "1:208638350255:web:63d016867a67575b5e155a"
 };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
 
-// ---------------- ESTADO ----------------
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* ---------------- ESTADO ---------------- */
 let colaboradores = [];
 let pontos = JSON.parse(localStorage.getItem('pontos') || '[]');
 
-// ---------------- ELEMENTOS ----------------
+/* ---------------- ELEMENTOS ---------------- */
 const loginScreen = document.getElementById('loginScreen');
 const mainApp = document.getElementById('mainApp');
 const loginBtn = document.getElementById('loginBtn');
@@ -164,35 +161,35 @@ const colabTurnoInput = document.getElementById('colabTurno');
 const saveColabBtn = document.getElementById('saveColabBtn');
 const cancelColabBtn = document.getElementById('cancelColabBtn');
 
-// ---------------- LOGIN ----------------
-function loginSucesso() {
-  loginScreen.style.display = 'none';
-  mainApp.classList.remove('hidden');
-  if(rememberCheckbox.checked) localStorage.setItem('autenticado','1');
-  carregarColaboradoresFirebase();
-}
+/* ---------------- LOGIN ---------------- */
+const LOGIN_USER = 'CLX', LOGIN_PASS = '02072007';
 
-loginBtn.addEventListener('click', () => {
+loginBtn.addEventListener('click', async () => {
   const u = document.getElementById('user').value.trim();
   const p = document.getElementById('pass').value.trim();
   if(u === LOGIN_USER && p === LOGIN_PASS){
-    loginSucesso();
+    loginScreen.style.display='none';
+    mainApp.classList.remove('hidden');
+    if(rememberCheckbox.checked) localStorage.setItem('autenticado','1');
+    await carregarColaboradoresFirebase();
+    renderAll();
   } else {
-    loginMsg.textContent = 'Usuário ou senha incorretos.';
-    setTimeout(()=> loginMsg.textContent='', 3000);
+    loginMsg.textContent='Usuário ou senha incorretos.';
+    setTimeout(()=>loginMsg.textContent='',3000);
   }
 });
-
 if(localStorage.getItem('autenticado')==='1'){
-  loginSucesso();
+  loginScreen.style.display='none';
+  mainApp.classList.remove('hidden');
+  carregarColaboradoresFirebase().then(renderAll);
 }
 
-logoutBtn.addEventListener('click', ()=>{
+logoutBtn.addEventListener('click', ()=> {
   localStorage.removeItem('autenticado');
   location.reload();
 });
 
-// ---------------- RELÓGIO ----------------
+/* ---------------- RELÓGIO ---------------- */
 function atualizarRelogio(){
   const now=new Date();
   clockEl.textContent = now.toLocaleTimeString('pt-BR',{hour12:false});
@@ -200,24 +197,24 @@ function atualizarRelogio(){
 setInterval(atualizarRelogio,1000);
 atualizarRelogio();
 
-// ---------------- FUNÇÕES ----------------
-function salvarLocal(){
-  localStorage.setItem('pontos',JSON.stringify(pontos));
-}
+/* ---------------- FUNÇÕES ---------------- */
+function salvarLocal(){ localStorage.setItem('pontos',JSON.stringify(pontos)); }
 function escapeHtml(s){ if(!s && s!==0) return ''; return String(s).replace(/[&<>"'`=\/]/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D'}[ch])); }
+function gerarIdColab(){ let max=0; colaboradores.forEach(c=>{if(Number(c.id)>max) max=Number(c.id)}); return max+1; }
 
-// ---------------- FIREBASE ----------------
-function carregarColaboradoresFirebase(){
-  db.collection('colaboradores').get().then(snapshot=>{
-    colaboradores = [];
-    snapshot.forEach(doc=>{
-      colaboradores.push({id:doc.id,...doc.data()});
-    });
-    renderAll();
-  });
+/* ---------------- FIREBASE ---------------- */
+async function carregarColaboradoresFirebase(){
+  try{
+    const snapshot = await getDocs(collection(db,"colaboradores"));
+    colaboradores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    document.getElementById('status').textContent = "Online • Firebase";
+  }catch(e){
+    console.error(e);
+    document.getElementById('status').textContent = "Offline • Local Storage";
+  }
 }
 
-// ---------------- RENDER ----------------
+/* ---------------- RENDER ---------------- */
 function renderColaboradores(){
   const term=(searchInput.value||'').toLowerCase().trim();
   colabBody.innerHTML='';
@@ -240,6 +237,7 @@ function renderColaboradores(){
     colabBody.appendChild(tr);
   });
 }
+
 function renderPontos(){
   pontosBody.innerHTML='';
   pontos.forEach((p,i)=>{
@@ -260,7 +258,7 @@ function renderPontos(){
 }
 function renderAll(){ renderColaboradores(); renderPontos(); }
 
-// ---------------- CRUD COLAB ----------------
+/* ---------------- CRUD COLAB ---------------- */
 addColabBtn.addEventListener('click', ()=> openColabModal());
 editColabBtn.addEventListener('click', ()=>{
   const id = prompt('Digite o ID do colaborador para editar:');
@@ -281,11 +279,7 @@ function openColabModal(id){
     colabTurnoInput.value=c.turno||'';
     document.getElementById('colabTitle').textContent='Editar Colaborador';
   } else {
-    colabIdInput.value='';
-    colabNomeInput.value='';
-    colabMatInput.value='';
-    colabEmailInput.value='';
-    colabTurnoInput.value='';
+    colabIdInput.value=''; colabNomeInput.value=''; colabMatInput.value=''; colabEmailInput.value=''; colabTurnoInput.value='';
     document.getElementById('colabTitle').textContent='Novo Colaborador';
   }
   colabModal.classList.remove('hidden');
@@ -303,22 +297,29 @@ saveColabBtn.addEventListener('click', ()=>{
     if(idx===-1) return alert('Colaborador não encontrado.');
     colaboradores[idx]={id:idVal,nome,matricula:mat,email,turno};
   } else {
-    const novoId = String(Date.now());
-    colaboradores.push({id:novoId,nome,matricula:mat,email,turno});
+    const novoId=gerarIdColab();
+    colaboradores.push({id:String(novoId),nome,matricula:mat,email,turno});
   }
-  renderAll();
-  colabModal.classList.add('hidden');
+  renderAll(); colabModal.classList.add('hidden');
 });
 window.editarColab=function(id){ openColabModal(id); }
 function removerColabPrompt(id){
   if(!confirm('Confirma exclusão do colaborador ID '+id+' ?')) return;
-  colaboradores = colaboradores.filter(x=>String(x.id)!==String(id));
+  const idx = colaboradores.findIndex(x=>String(x.id)===String(id));
+  if(idx===-1) return alert('Colaborador não encontrado.');
+  colaboradores.splice(idx,1);
   renderAll();
 }
 
-// ---------------- PONTOS ----------------
-entradaBtn.addEventListener('click', ()=>{ const id = prompt('Digite o ID do colaborador para registrar Entrada:'); if(id) registrarPontoPrompt(id,'Entrada'); });
-saidaBtn.addEventListener('click', ()=>{ const id = prompt('Digite o ID do colaborador para registrar Saída:'); if(id) registrarPontoPrompt(id,'Saída'); });
+/* ---------------- PONTOS ---------------- */
+entradaBtn.addEventListener('click', ()=>{
+  const id = prompt('Digite o ID do colaborador para registrar Entrada:');
+  if(id) registrarPontoPrompt(id,'Entrada');
+});
+saidaBtn.addEventListener('click', ()=>{
+  const id = prompt('Digite o ID do colaborador para registrar Saída:');
+  if(id) registrarPontoPrompt(id,'Saída');
+});
 function registrarPontoPrompt(colabId,tipo){
   const c=colaboradores.find(x=>String(x.id)===String(colabId));
   if(!c) return alert('Colaborador não encontrado.');
@@ -340,18 +341,15 @@ window.removerPonto=function(index){
   renderPontos();
 }
 
-// ---------------- LIMPAR TODOS ----------------
+/* ---------------- LIMPAR TODOS ---------------- */
 limparTodosBtn.addEventListener('click', ()=>{
   if(pontos.length===0) return alert('Nenhum ponto para limpar.');
   if(confirm('Deseja apagar TODOS os pontos registrados?')){
-    pontos=[];
-    salvarLocal();
-    renderPontos();
-    alert('Todos os pontos foram removidos.');
+    pontos=[]; salvarLocal(); renderPontos(); alert('Todos os pontos foram removidos.');
   }
 });
 
-// ---------------- EXPORTAR PLANILHA ----------------
+/* ---------------- EXPORTAR PLANILHA ---------------- */
 baixarBtn.addEventListener('click', ()=>{
   if(pontos.length===0) return alert('Nenhum ponto registrado ainda.');
   const rows=pontos.map((p,i)=>({Numero:i+1,ID_Colaborador:p.id,Nome:p.nome,Matricula:p.matricula,Email:p.email,Tipo:p.tipo,Data:p.data,Hora:p.hora}));
@@ -361,12 +359,10 @@ baixarBtn.addEventListener('click', ()=>{
   XLSX.writeFile(wb,'registros_ponto.xlsx');
 });
 
-// ---------------- PESQUISA ----------------
+/* ---------------- PESQUISA ---------------- */
 searchInput.addEventListener('input', renderAll);
-
-// ---------------- INICIALIZAR ----------------
-window.registrarPontoPrompt=registrarPontoPrompt;
-window.removerColabPrompt=removerColabPrompt;
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </body>
 </html>
