@@ -104,12 +104,11 @@ tr:hover td{background:#fbfbfb}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
-import { getFirestore, collection, getDocs, setDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, setDoc, doc } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
-// Config Firebase
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyCpBiFzqOod4K32cWMr5hfx13fw6LGcPVY",
   authDomain: "ponto-eletronico-f35f9.firebaseapp.com",
@@ -122,16 +121,41 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ---------------- LOGIN ----------------
+/* ---------------- DADOS ---------------- */
+let colaboradores = [];
+let pontos = [];
+
+/* ---------------- ELEMENTOS ---------------- */
 const loginBtn = document.getElementById('loginBtn');
 const loginScreen = document.getElementById('loginScreen');
 const mainApp = document.getElementById('mainApp');
 const loginMsg = document.getElementById('loginMsg');
 const rememberCheckbox = document.getElementById('remember');
+const logoutBtn = document.getElementById('logoutBtn');
+
+const addColabBtn = document.getElementById('addColabBtn');
+const baixarBtn = document.getElementById('baixarBtn');
+const limparTodosBtn = document.getElementById('limparTodosBtn');
+const clockEl = document.getElementById('clock');
+
+const colabBody = document.getElementById('colabBody');
+const pontosBody = document.getElementById('pontosBody');
+const searchInput = document.getElementById('search');
+
+const colabModal = document.getElementById('colabModal');
+const colabIdInput = document.getElementById('colabId');
+const colabNomeInput = document.getElementById('colabNome');
+const colabMatInput = document.getElementById('colabMatricula');
+const colabEmailInput = document.getElementById('colabEmail');
+const colabTurnoInput = document.getElementById('colabTurno');
+const saveColabBtn = document.getElementById('saveColabBtn');
+const cancelColabBtn = document.getElementById('cancelColabBtn');
+
+/* ---------------- LOGIN ---------------- */
 loginBtn.addEventListener('click', async () => {
-  const user = document.getElementById('user').value.trim();
-  const pass = document.getElementById('pass').value.trim();
-  if(user==='CLX' && pass==='02072007'){
+  const u = document.getElementById('user').value.trim();
+  const p = document.getElementById('pass').value.trim();
+  if(u==='admin' && p==='1234'){
     loginScreen.style.display='none';
     mainApp.classList.remove('hidden');
     if(rememberCheckbox.checked) localStorage.setItem('autenticado','1');
@@ -146,188 +170,159 @@ if(localStorage.getItem('autenticado')==='1'){
   mainApp.classList.remove('hidden');
   carregarColaboradoresFirebase();
 }
+logoutBtn.addEventListener('click', ()=> { localStorage.removeItem('autenticado'); location.reload(); });
 
-document.getElementById('logoutBtn').addEventListener('click', ()=> {
-  localStorage.removeItem('autenticado');
-  location.reload();
-});
+/* ---------------- RELÓGIO ---------------- */
+setInterval(()=> clockEl.textContent=new Date().toLocaleTimeString('pt-BR',{hour12:false}),1000);
 
-// ---------------- RELÓGIO ----------------
-const clockEl = document.getElementById('clock');
-setInterval(()=> clockEl.textContent = new Date().toLocaleTimeString('pt-BR',{hour12:false}),1000);
-
-// ---------------- DADOS ----------------
-let colaboradores = [];
-let pontos = [];
-
-const colabBody = document.getElementById('colabBody');
-const pontosBody = document.getElementById('pontosBody');
-const searchInput = document.getElementById('search');
-
-// ---------------- FIREBASE ----------------
+/* ---------------- FIREBASE ---------------- */
 async function carregarColaboradoresFirebase(){
-  const colabCol = collection(db,"colaboradores");
-  onSnapshot(colabCol, (snapshot)=>{
-    colaboradores = snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));
-    renderColaboradores();
-    document.getElementById('status').textContent="Online • Firebase";
-  }, (err)=>{
-    console.error(err);
-    document.getElementById('status').textContent="Offline • Local Storage";
-  });
-}
-
-async function salvarColaboradorFirebase(colab){
-  await setDoc(doc(db,"colaboradores",colab.id),colab);
-}
-
-async function salvarPontosFirebase(){
-  for(let i=0;i<pontos.length;i++){
-    await setDoc(doc(db,"pontos",i.toString()),pontos[i]);
+  try{
+    const snapshotColab = await getDocs(collection(db,"colaboradores"));
+    colaboradores = snapshotColab.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const snapshotPontos = await getDocs(collection(db,"pontos"));
+    pontos = snapshotPontos.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    document.getElementById('status').textContent = "Online • Firebase";
+    renderAll();
+  } catch(e){
+    console.error(e);
+    document.getElementById('status').textContent = "Offline • Local Storage";
   }
 }
 
-// ---------------- RENDER ----------------
-function escapeHtml(s){ if(!s && s!==0) return ''; return String(s).replace(/[&<>"'`=\/]/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D'}[ch])); }
+async function salvarFirebase(){
+  for(const c of colaboradores){
+    await setDoc(doc(db,"colaboradores",c.id),c);
+  }
+  for(const p of pontos){
+    await setDoc(doc(db,"pontos",p.id),p);
+  }
+}
 
-function renderColaboradores(){
-  const term=(searchInput.value||'').toLowerCase().trim();
-  colabBody.innerHTML='';
-  colaboradores.forEach((c,idx)=>{
-    if(term && !(String(c.nome).toLowerCase().includes(term) || String(c.matricula).toLowerCase().includes(term) || String(c.email||'').toLowerCase().includes(term))) return;
-    const tr=document.createElement('tr');
-    tr.innerHTML=`
-      <td>${idx+1}</td>
+/* ---------------- FUNÇÕES ---------------- */
+function escapeHtml(s){ if(!s && s!==0) return ''; return String(s).replace(/[&<>"'`=\/]/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D'}[ch])); }
+function renderAll(){ renderColaboradores(); renderPontos(); }
+
+/* ---------------- RENDER ---------------- */
+function renderColaboradores() {
+  const term = (searchInput.value || '').toLowerCase().trim();
+  colabBody.innerHTML = '';
+
+  colaboradores.forEach((c, idx) => {
+    if (term && !(String(c.nome).toLowerCase().includes(term) ||
+                  String(c.matricula).toLowerCase().includes(term) ||
+                  String(c.email || '').toLowerCase().includes(term))) return;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${idx + 1}</td>
       <td>${escapeHtml(c.id)}</td>
       <td>${escapeHtml(c.nome)}</td>
       <td>${escapeHtml(c.matricula)} <span class="small">(${escapeHtml(c.email||'')})</span></td>
       <td>${escapeHtml(c.turno||'')}</td>
       <td class="flex-row">
-        <button class="edit" onclick="editarColab('${c.id}')">Editar</button>
-        <button class="del" onclick="removerColabPrompt('${c.id}')">Excluir</button>
-        <button class="secondary" style="background:#e8f5e9;color:#111;margin-left:6px" onclick="registrarPontoPrompt('${c.id}','Entrada')">Entrada</button>
-        <button class="secondary" style="background:#e3f2fd;color:#111" onclick="registrarPontoPrompt('${c.id}','Saída')">Saída</button>
+        <button class="edit">Editar</button>
+        <button class="del">Excluir</button>
+        <button class="entrada" style="background:#e8f5e9;color:#111;margin-left:6px">Entrada</button>
+        <button class="saida" style="background:#e3f2fd;color:#111">Saída</button>
       </td>
     `;
     colabBody.appendChild(tr);
+
+    tr.querySelector('.edit').addEventListener('click', () => openColabModal(c.id));
+    tr.querySelector('.del').addEventListener('click', () => removerColabPrompt(c.id));
+    tr.querySelector('.entrada').addEventListener('click', () => registrarPontoPrompt(c.id, 'Entrada'));
+    tr.querySelector('.saida').addEventListener('click', () => registrarPontoPrompt(c.id, 'Saída'));
   });
 }
 
 function renderPontos(){
-  pontosBody.innerHTML='';
-  pontos.forEach((p,i)=>{
-    const tr=document.createElement('tr');
+  pontosBody.innerHTML = '';
+  pontos.forEach((p, idx)=>{
+    const tr = document.createElement('tr');
     tr.innerHTML=`
-      <td>${i+1}</td>
-      <td>${escapeHtml(p.id)}</td>
+      <td>${idx+1}</td>
+      <td>${escapeHtml(p.idColab)}</td>
       <td>${escapeHtml(p.nome)}</td>
       <td>${escapeHtml(p.matricula)}</td>
       <td>${escapeHtml(p.email||'')}</td>
       <td>${escapeHtml(p.tipo)}</td>
       <td>${escapeHtml(p.data)}</td>
       <td>${escapeHtml(p.hora)}</td>
-      <td><button class="del" onclick="removerPonto(${i})">Excluir</button></td>
+      <td class="flex-row">
+        <button class="del">Excluir</button>
+      </td>
     `;
     pontosBody.appendChild(tr);
+    tr.querySelector('.del').addEventListener('click', ()=>{ pontos.splice(idx,1); renderPontos(); salvarFirebase(); });
   });
 }
 
-// ---------------- CRUD ----------------
-document.getElementById('addColabBtn').addEventListener('click', ()=> openColabModal());
-
-window.editarColab = function(id){
-  openColabModal(id);
-}
-
-window.removerColabPrompt = function(id){
-  if(!confirm('Confirma exclusão do colaborador ID '+id+' ?')) return;
-  colaboradores = colaboradores.filter(x=>String(x.id)!==String(id));
-  salvarColaboradorFirebase({id}); // Remove do Firestore
-}
-
-function registrarPontoPrompt(colabId,tipo){
-  const c = colaboradores.find(x=>String(x.id)===String(colabId));
-  if(!c) return alert('Colaborador não encontrado');
-  const now=new Date();
-  pontos.push({
-    id:c.id, nome:c.nome, matricula:c.matricula, email:c.email||'',
-    tipo:tipo,
-    data:now.toLocaleDateString('pt-BR'),
-    hora:now.toLocaleTimeString('pt-BR',{hour12:false})
-  });
-  renderPontos();
-  salvarPontosFirebase();
-}
-
-window.removerPonto=function(i){
-  pontos.splice(i,1);
-  renderPontos();
-  salvarPontosFirebase();
-}
-
-// ---------------- MODAL ----------------
-const colabModal = document.getElementById('colabModal');
-const colabTitle = document.getElementById('colabTitle');
-const colabIdInput = document.getElementById('colabId');
-const colabNome = document.getElementById('colabNome');
-const colabMatricula = document.getElementById('colabMatricula');
-const colabEmail = document.getElementById('colabEmail');
-const colabTurno = document.getElementById('colabTurno');
-const saveColabBtn = document.getElementById('saveColabBtn');
-const cancelColabBtn = document.getElementById('cancelColabBtn');
-
+/* ---------------- MODAL ---------------- */
 function openColabModal(id){
+  const c = colaboradores.find(x=>x.id===id);
+  colabIdInput.value = c?.id||'';
+  colabNomeInput.value = c?.nome||'';
+  colabMatInput.value = c?.matricula||'';
+  colabEmailInput.value = c?.email||'';
+  colabTurnoInput.value = c?.turno||'';
   colabModal.classList.remove('hidden');
-  if(id){
-    colabTitle.textContent='Editar Colaborador';
-    const c = colaboradores.find(x=>String(x.id)===String(id));
-    colabIdInput.value = c.id;
-    colabNome.value = c.nome;
-    colabMatricula.value = c.matricula;
-    colabEmail.value = c.email||'';
-    colabTurno.value = c.turno||'';
-  } else {
-    colabTitle.textContent='Novo Colaborador';
-    colabIdInput.value = Date.now().toString();
-    colabNome.value = '';
-    colabMatricula.value = '';
-    colabEmail.value = '';
-    colabTurno.value = '';
+  document.getElementById('colabTitle').textContent = id?'Editar Colaborador':'Novo Colaborador';
+}
+cancelColabBtn.addEventListener('click', ()=> colabModal.classList.add('hidden'));
+saveColabBtn.addEventListener('click', ()=>{
+  const id = colabIdInput.value || Date.now().toString();
+  const c = { id, nome: colabNomeInput.value, matricula: colabMatInput.value, email: colabEmailInput.value, turno: colabTurnoInput.value };
+  const idx = colaboradores.findIndex(x=>x.id===id);
+  if(idx>-1) colaboradores[idx]=c; else colaboradores.push(c);
+  renderColaboradores();
+  colabModal.classList.add('hidden');
+  salvarFirebase();
+});
+
+/* ---------------- REGISTRAR PONTO ---------------- */
+function registrarPontoPrompt(idColab, tipo){
+  const c = colaboradores.find(x=>x.id===idColab);
+  if(!c) return;
+  const now = new Date();
+  const p = { id: Date.now().toString(), idColab, nome:c.nome, matricula:c.matricula, email:c.email, tipo, data: now.toLocaleDateString('pt-BR'), hora: now.toLocaleTimeString('pt-BR',{hour12:false}) };
+  pontos.push(p);
+  renderPontos();
+  salvarFirebase();
+}
+
+/* ---------------- EXCLUIR ---------------- */
+function removerColabPrompt(id){
+  if(confirm('Deseja realmente excluir este colaborador?')){
+    colaboradores = colaboradores.filter(x=>x.id!==id);
+    pontos = pontos.filter(p=>p.idColab!==id);
+    renderAll();
+    salvarFirebase();
   }
 }
 
-saveColabBtn.addEventListener('click', async ()=>{
-  const id = colabIdInput.value;
-  const colab = {id,nome:colabNome.value,matricula:colabMatricula.value,email:colabEmail.value,turno:colabTurno.value};
-  colaboradores = colaboradores.filter(x=>x.id!==id);
-  colaboradores.push(colab);
-  renderColaboradores();
-  await salvarColaboradorFirebase(colab);
-  colabModal.classList.add('hidden');
+/* ---------------- PESQUISAR ---------------- */
+searchInput.addEventListener('input', renderColaboradores);
+
+/* ---------------- BAIXAR EXCEL ---------------- */
+baixarBtn.addEventListener('click', ()=>{
+  const wb = XLSX.utils.book_new();
+  const wsColab = XLSX.utils.json_to_sheet(colaboradores);
+  const wsPontos = XLSX.utils.json_to_sheet(pontos);
+  XLSX.utils.book_append_sheet(wb, wsColab,'Colaboradores');
+  XLSX.utils.book_append_sheet(wb, wsPontos,'Pontos');
+  XLSX.writeFile(wb,'PontoEletronico.xlsx');
 });
 
-cancelColabBtn.addEventListener('click', ()=> colabModal.classList.add('hidden'));
-
-// ---------------- BUSCA ----------------
-searchInput.addEventListener('input', ()=> renderColaboradores());
-
-// ---------------- DOWNLOAD ----------------
-document.getElementById('baixarBtn').addEventListener('click',()=>{
-  const wb=XLSX.utils.book_new();
-  const ws1=XLSX.utils.json_to_sheet(colaboradores);
-  const ws2=XLSX.utils.json_to_sheet(pontos);
-  XLSX.utils.book_append_sheet(wb,ws1,'Colaboradores');
-  XLSX.utils.book_append_sheet(wb,ws2,'Pontos');
-  XLSX.writeFile(wb,'ponto_eletronico.xlsx');
-});
-
-document.getElementById('limparTodosBtn').addEventListener('click',()=>{
-  if(confirm('Confirma apagar todos os pontos?')){
-    pontos=[];
+/* ---------------- LIMPAR TODOS ---------------- */
+limparTodosBtn.addEventListener('click', ()=>{
+  if(confirm('Deseja realmente limpar todos os pontos?')){
+    pontos = [];
     renderPontos();
-    salvarPontosFirebase();
+    salvarFirebase();
   }
 });
 </script>
+
 </body>
 </html>
