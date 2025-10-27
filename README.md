@@ -1,164 +1,214 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ponto Eletrônico CLX</title>
-  <script type="module">
-    // ---------------- IMPORTS FIREBASE ----------------
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
-    import { 
-      getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where 
-    } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
-    // ---------------- CONFIG FIREBASE ----------------
-    const firebaseConfig = {
-      apiKey: "AIzaSyCpBiFzqOod4K32cWMr5hfx13fw6LGcPVY",
-      authDomain: "ponto-eletronico-f35f9.firebaseapp.com",
-      projectId: "ponto-eletronico-f35f9",
-      storageBucket: "ponto-eletronico-f35f9.firebasestorage.app",
-      messagingSenderId: "208638350255",
-      appId: "1:208638350255:web:63d016867a67575b5e155a"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    // ---------------- LOGIN ----------------
-    const loginDiv = document.createElement('div');
-    loginDiv.innerHTML = `
-      <div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#f3f4f6;">
-        <div style="background:white;padding:30px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1);width:300px;text-align:center">
-          <h2>Login</h2>
-          <input id="user" placeholder="Usuário" style="width:100%;margin:5px 0;padding:8px">
-          <input id="pass" type="password" placeholder="Senha" style="width:100%;margin:5px 0;padding:8px">
-          <button id="entrarBtn" style="width:100%;margin-top:10px;padding:8px;background:#2563eb;color:white;border:none;border-radius:5px;cursor:pointer">Entrar</button>
-          <p style="font-size:12px;color:#666;margin-top:6px">
-            Usuário: <b>CLX</b> / Senha: <b>02072007</b>
-          </p>
-        </div>
-      </div>`;
-    document.body.appendChild(loginDiv);
-    document.getElementById('entrarBtn').addEventListener('click', ()=>{
-      const u = document.getElementById('user').value.trim();
-      const p = document.getElementById('pass').value.trim();
-      if(u==="CLX" && p==="02072007"){
-        loginDiv.remove();
-        iniciarSistema();
-      } else alert("Usuário ou senha incorretos!");
-    });
-    // ---------------- SISTEMA PRINCIPAL ----------------
-    async function iniciarSistema(){
-      document.body.innerHTML = `
-      <div style="padding:20px;">
-        <h2>Ponto Eletrônico</h2>
-        <button id="addColab">Adicionar Colaborador</button>
-        <button id="baixarExcel">Baixar Planilha</button>
-        <button id="limparTodos">Limpar Todos os Pontos</button>
-        <h3 style="margin-top:20px;">Colaboradores</h3>
-        <table border="1" width="100%" style="border-collapse:collapse">
-          <thead>
-            <tr>
-              <th>Nome</th><th>Matrícula</th><th>Email</th><th>Ações</th>
-            </tr>
-          </thead>
-          <tbody id="colabTable"></tbody>
-        </table>
-        <h3 style="margin-top:20px;">Registros de Ponto</h3>
-        <table border="1" width="100%" style="border-collapse:collapse">
-          <thead>
-            <tr><th>Nome</th><th>Tipo</th><th>Data</th><th>Hora</th></tr>
-          </thead>
-          <tbody id="pontoTable"></tbody>
-        </table>
-      </div>`;
-      const colabTable = document.getElementById('colabTable');
-      const pontoTable = document.getElementById('pontoTable');
-      const addBtn = document.getElementById('addColab');
-      const limparTodosBtn = document.getElementById('limparTodos');
-      let colaboradores = [];
-      let pontos = [];
-      // ----- CARREGAR DADOS DO FIREBASE -----
-      const colabSnap = await getDocs(collection(db, "colaboradores"));
-      colabSnap.forEach(d => colaboradores.push({id: d.id, ...d.data()}));
-      const pontoSnap = await getDocs(collection(db, "pontos"));
-      pontoSnap.forEach(d => pontos.push({id: d.id, ...d.data()}));
-      renderAll();
-      // ----- ADICIONAR COLAB -----
-      addBtn.addEventListener('click', async ()=>{
-        const nome = prompt("Nome do colaborador:");
-        const matricula = prompt("Matrícula:");
-        const email = prompt("Email:");
-        if(nome && matricula && email){
-          const docRef = await addDoc(collection(db, "colaboradores"), {nome, matricula, email});
-          colaboradores.push({id: docRef.id, nome, matricula, email});
-          renderColab();
-        }
-      });
-      // ----- RENDERIZAÇÕES -----
-      function renderAll(){ renderColab(); renderPontos(); }
-      function renderColab(){
-        colabTable.innerHTML = colaboradores.map(c=>`
-          <tr>
-            <td>${c.nome}</td>
-            <td>${c.matricula}</td>
-            <td>${c.email}</td>
-            <td>
-              <button onclick="registrarPonto('${c.id}','Entrada')">Entrada</button>
-              <button onclick="registrarPonto('${c.id}','Saída')">Saída</button>
-              <button onclick="removerColab('${c.id}')">Excluir</button>
-            </td>
-          </tr>
-        `).join('');
-      }
-      function renderPontos(){
-        pontoTable.innerHTML = pontos.map(p=>`
-          <tr>
-            <td>${p.nome}</td>
-            <td>${p.tipo}</td>
-            <td>${p.data}</td>
-            <td>${p.hora}</td>
-          </tr>
-        `).join('');
-      }
-      // ----- REGISTRAR PONTO -----
-      window.registrarPonto = async (idColab, tipo)=>{
-        const c = colaboradores.find(x=>x.id===idColab);
-        if(!c) return;
-        const now = new Date();
-        const registro = {
-          nome:c.nome, tipo,
-          data: now.toLocaleDateString('pt-BR'),
-          hora: now.toLocaleTimeString('pt-BR',{hour12:false}),
-          idColab: idColab
-        };
-        const docRef = await addDoc(collection(db, "pontos"), registro);
-        pontos.push({id: docRef.id, ...registro});
-        renderPontos();
-      };
-      // ----- EXCLUIR COLAB -----
-      window.removerColab = async (id)=>{
-        if(confirm('Deseja realmente excluir este colaborador e seus pontos?')){
-          await deleteDoc(doc(db, "colaboradores", id));
-          const q = query(collection(db, "pontos"), where("idColab", "==", id));
-          const snap = await getDocs(q);
-          snap.forEach(async (docSnap)=> await deleteDoc(doc(db, "pontos", docSnap.id)));
-          colaboradores = colaboradores.filter(x=>x.id!==id);
-          pontos = pontos.filter(p=>p.idColab!==id);
-          renderAll();
-          alert('Excluído com sucesso!');
-        }
-      };
-      // ----- LIMPAR TODOS -----
-      limparTodosBtn.addEventListener('click', async ()=>{
-        if(confirm('Deseja realmente apagar todos os pontos?')){
-          const snap = await getDocs(collection(db, "pontos"));
-          snap.forEach(async (d)=> await deleteDoc(doc(db,"pontos",d.id)));
-          pontos = [];
-          renderPontos();
-          alert('Todos os pontos foram apagados!');
-        }
-      });
-    }
-  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Ponto Eletrônico</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #eef2f5; margin: 0; }
+  header { background: #007bff; color: white; padding: 10px; text-align: center; }
+  .container { padding: 20px; max-width: 900px; margin: auto; }
+  .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-top: 10px; }
+  button { background: #007bff; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+  button:hover { background: #0056b3; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { padding: 8px; border-bottom: 1px solid #ddd; text-align: left; }
+  input, select { padding: 5px; border-radius: 5px; border: 1px solid #ccc; }
+  #loginBox { text-align: center; margin-top: 100px; }
+</style>
 </head>
 <body>
+
+<header><h1>Ponto Eletrônico</h1></header>
+
+<div id="loginBox">
+  <h2>Login</h2>
+  <input type="text" id="loginUser" placeholder="Usuário"><br><br>
+  <input type="password" id="loginPass" placeholder="Senha"><br><br>
+  <label><input type="checkbox" id="lembrarLogin"> Lembrar login</label><br><br>
+  <button onclick="fazerLogin()">Entrar</button>
+</div>
+
+<div class="container" id="app" style="display:none;">
+  <div class="card">
+    <h2>Cadastro de Colaborador</h2>
+    <input type="text" id="nomeColab" placeholder="Nome do colaborador">
+    <button onclick="addColaborador()">Adicionar</button>
+  </div>
+
+  <div class="card">
+    <h2>Colaboradores</h2>
+    <table id="tabelaColab">
+      <tr><th>Nome</th><th>Ações</th></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Registros de Ponto</h2>
+    <table id="tabelaPonto">
+      <tr><th>Colaborador</th><th>Entrada</th><th>Saída</th></tr>
+    </table>
+    <button onclick="limparTodosPontos()">Limpar Todos</button>
+    <button onclick="exportarExcel()">Exportar Excel</button>
+  </div>
+</div>
+
+<!-- Biblioteca para gerar Excel -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script type="module">
+// -------------------- FIREBASE CONFIG --------------------
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, getDocs,
+  doc, deleteDoc, query, where
+} from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCpBiFzqOod4K32cWMr5hfx13fw6LGcPVY",
+  authDomain: "ponto-eletronico-f35f9.firebaseapp.com",
+  projectId: "ponto-eletronico-f35f9",
+  storageBucket: "ponto-eletronico-f35f9.firebasestorage.app",
+  messagingSenderId: "208638350255",
+  appId: "1:208638350255:web:63d016867a67575b5e155a"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// -------------------- LOGIN --------------------
+function fazerLogin() {
+  const user = document.getElementById('loginUser').value;
+  const pass = document.getElementById('loginPass').value;
+  const lembrar = document.getElementById('lembrarLogin').checked;
+
+  if (user === "CLX" && pass === "02072007") {
+    if (lembrar) localStorage.setItem("loginSalvo", "CLX");
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+  } else {
+    alert("Login ou senha incorretos!");
+  }
+}
+
+window.onload = () => {
+  const salvo = localStorage.getItem("loginSalvo");
+  if (salvo === "CLX") {
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+  }
+};
+
+// -------------------- VARIÁVEIS --------------------
+let colaboradores = [];
+
+// -------------------- CADASTRAR COLABORADOR --------------------
+async function addColaborador() {
+  const nome = document.getElementById('nomeColab').value.trim();
+  if (!nome) return alert("Digite o nome do colaborador!");
+
+  const docRef = await addDoc(collection(db, "colaboradores"), { nome });
+  colaboradores.push({ id: docRef.id, nome });
+  renderColab();
+  document.getElementById('nomeColab').value = '';
+}
+
+// -------------------- RENDERIZAR COLABORADORES --------------------
+function renderColab() {
+  const tabela = document.getElementById('tabelaColab');
+  tabela.innerHTML = "<tr><th>Nome</th><th>Ações</th></tr>";
+  colaboradores.forEach(c => {
+    const row = tabela.insertRow();
+    row.insertCell(0).innerText = c.nome;
+    const acoes = row.insertCell(1);
+    acoes.innerHTML = `
+      <button onclick="baterEntrada('${c.id}', '${c.nome}')">Entrada</button>
+      <button onclick="baterSaida('${c.id}', '${c.nome}')">Saída</button>
+      <button onclick="removerColabPrompt('${c.id}')">Excluir</button>
+    `;
+  });
+}
+
+// -------------------- BATER ENTRADA --------------------
+async function baterEntrada(id, nome) {
+  const hora = new Date().toLocaleString();
+  await addDoc(collection(db, "pontos"), { idColab: id, nome, entrada: hora, saida: "" });
+  renderPontos();
+}
+
+// -------------------- BATER SAÍDA --------------------
+async function baterSaida(id, nome) {
+  const hora = new Date().toLocaleString();
+  await addDoc(collection(db, "pontos"), { idColab: id, nome, entrada: "", saida: hora });
+  renderPontos();
+}
+
+// -------------------- LISTAR PONTOS --------------------
+async function renderPontos() {
+  const tabela = document.getElementById('tabelaPonto');
+  tabela.innerHTML = "<tr><th>Colaborador</th><th>Entrada</th><th>Saída</th></tr>";
+  const snap = await getDocs(collection(db, "pontos"));
+  snap.forEach(d => {
+    const p = d.data();
+    const row = tabela.insertRow();
+    row.insertCell(0).innerText = p.nome;
+    row.insertCell(1).innerText = p.entrada || "-";
+    row.insertCell(2).innerText = p.saida || "-";
+  });
+}
+
+// -------------------- EXCLUIR COLABORADOR PERMANENTEMENTE --------------------
+async function removerColabPrompt(id) {
+  if (confirm("Deseja excluir este colaborador e seus pontos?")) {
+    await deleteDoc(doc(db, "colaboradores", id));
+
+    const q = query(collection(db, "pontos"), where("idColab", "==", id));
+    const snap = await getDocs(q);
+    snap.forEach(async (d) => {
+      await deleteDoc(doc(db, "pontos", d.id));
+    });
+
+    colaboradores = colaboradores.filter(c => c.id !== id);
+    renderColab();
+    renderPontos();
+  }
+}
+
+// -------------------- LIMPAR TODOS OS PONTOS --------------------
+async function limparTodosPontos() {
+  if (confirm("Deseja apagar todos os pontos?")) {
+    const snap = await getDocs(collection(db, "pontos"));
+    snap.forEach(async (d) => {
+      await deleteDoc(doc(db, "pontos", d.id));
+    });
+    renderPontos();
+  }
+}
+
+// -------------------- EXPORTAR PARA EXCEL --------------------
+async function exportarExcel() {
+  const snap = await getDocs(collection(db, "pontos"));
+  const registros = [];
+  snap.forEach(d => registros.push(d.data()));
+
+  if (registros.length === 0) return alert("Nenhum ponto registrado.");
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(registros);
+  XLSX.utils.book_append_sheet(wb, ws, "Pontos");
+  XLSX.writeFile(wb, "pontos.xlsx");
+}
+
+// -------------------- CARREGAR DADOS INICIAIS --------------------
+async function carregarDados() {
+  const snapColab = await getDocs(collection(db, "colaboradores"));
+  colaboradores = [];
+  snapColab.forEach(d => colaboradores.push({ id: d.id, ...d.data() }));
+  renderColab();
+  renderPontos();
+}
+
+carregarDados();
+
+</script>
 </body>
 </html>
