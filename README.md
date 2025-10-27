@@ -120,16 +120,25 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+// ---------------- DADOS ----------------
+let colaboradores = [];
+let pontos = [];
+
+const colabBody = document.getElementById('colabBody');
+const pontosBody = document.getElementById('pontosBody');
+const searchInput = document.getElementById('search');
+
 // ---------------- LOGIN ----------------
 const loginBtn = document.getElementById('loginBtn');
 const loginScreen = document.getElementById('loginScreen');
 const mainApp = document.getElementById('mainApp');
 const loginMsg = document.getElementById('loginMsg');
 const rememberCheckbox = document.getElementById('remember');
+
 loginBtn.addEventListener('click', () => {
   const user = document.getElementById('user').value.trim();
   const pass = document.getElementById('pass').value.trim();
-  if(user==='CLX' && pass==='02072007'){
+  if(user==='admin' && pass==='1234'){
     loginScreen.style.display='none';
     mainApp.classList.remove('hidden');
     if(rememberCheckbox.checked) localStorage.setItem('autenticado','1');
@@ -154,14 +163,7 @@ document.getElementById('logoutBtn').addEventListener('click', ()=> {
 const clockEl = document.getElementById('clock');
 setInterval(()=> clockEl.textContent=new Date().toLocaleTimeString('pt-BR',{hour12:false}),1000);
 
-// ---------------- DADOS ----------------
-let colaboradores = [];
-let pontos = [];
-
-const colabBody = document.getElementById('colabBody');
-const pontosBody = document.getElementById('pontosBody');
-const searchInput = document.getElementById('search');
-
+// ---------------- FIREBASE FUNCTIONS ----------------
 function salvarFirebase(){
   db.ref('colaboradores').set(colaboradores);
   db.ref('pontos').set(pontos);
@@ -171,6 +173,7 @@ function loadFromFirebase(){
   db.ref('colaboradores').on('value', snap => {
     colaboradores = snap.val() || [];
     renderColaboradores();
+    document.getElementById('status').textContent = "Online • Firebase";
   });
   db.ref('pontos').on('value', snap => {
     pontos = snap.val() || [];
@@ -232,6 +235,7 @@ window.removerColabPrompt = function(id){
   if(!confirm('Confirma exclusão do colaborador ID '+id+' ?')) return;
   colaboradores = colaboradores.filter(x=>String(x.id)!==String(id));
   salvarFirebase();
+  renderColaboradores();
 }
 
 function registrarPontoPrompt(colabId,tipo){
@@ -242,6 +246,7 @@ function registrarPontoPrompt(colabId,tipo){
   const hora=now.toLocaleTimeString('pt-BR',{hour12:false});
   pontos.push({id:c.id,nome:c.nome,matricula:c.matricula,email:c.email||'',tipo,data,hora});
   salvarFirebase();
+  renderPontos();
   alert(`${c.nome} registrou ${tipo} às ${hora}`);
 }
 
@@ -249,13 +254,17 @@ window.removerPonto=function(index){
   if(!confirm('Excluir este registro?')) return;
   pontos.splice(index,1);
   salvarFirebase();
+  renderPontos();
 }
 
+// ---------------- EVENTOS ----------------
 searchInput.addEventListener('input', renderColaboradores);
+
 document.getElementById('limparTodosBtn').addEventListener('click', ()=>{
   if(confirm('Deseja apagar TODOS os pontos registrados?')){
     pontos=[];
     salvarFirebase();
+    renderPontos();
   }
 });
 
@@ -266,6 +275,58 @@ document.getElementById('baixarBtn').addEventListener('click', ()=>{
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'Pontos');
   XLSX.writeFile(wb,'registros_ponto.xlsx');
+});
+
+// ---------------- MODAL COLAB ----------------
+const colabModal = document.getElementById('colabModal');
+const colabIdInput = document.getElementById('colabId');
+const colabNomeInput = document.getElementById('colabNome');
+const colabMatInput = document.getElementById('colabMatricula');
+const colabEmailInput = document.getElementById('colabEmail');
+const colabTurnoInput = document.getElementById('colabTurno');
+const saveColabBtn = document.getElementById('saveColabBtn');
+const cancelColabBtn = document.getElementById('cancelColabBtn');
+
+function openColabModal(id){
+  if(id){
+    const c = colaboradores.find(x=>String(x.id)===String(id));
+    if(!c) return alert('Colaborador não encontrado.');
+    colabIdInput.value=c.id;
+    colabNomeInput.value=c.nome;
+    colabMatInput.value=c.matricula;
+    colabEmailInput.value=c.email||'';
+    colabTurnoInput.value=c.turno||'';
+    document.getElementById('colabTitle').textContent='Editar Colaborador';
+  } else {
+    colabIdInput.value='';
+    colabNomeInput.value='';
+    colabMatInput.value='';
+    colabEmailInput.value='';
+    colabTurnoInput.value='';
+    document.getElementById('colabTitle').textContent='Novo Colaborador';
+  }
+  colabModal.classList.remove('hidden');
+}
+cancelColabBtn.addEventListener('click', ()=> colabModal.classList.add('hidden'));
+
+saveColabBtn.addEventListener('click', ()=>{
+  const idVal = colabIdInput.value ? String(colabIdInput.value) : '';
+  const nome = colabNomeInput.value.trim();
+  const mat = colabMatInput.value.trim();
+  const email = colabEmailInput.value.trim();
+  const turno = colabTurnoInput.value.trim();
+  if(!nome) return alert('Preencha o nome.');
+  if(idVal){
+    const idx = colaboradores.findIndex(x=>String(x.id)===String(idVal));
+    if(idx===-1) return alert('Colaborador não encontrado.');
+    colaboradores[idx]={id:idVal,nome,matricula:mat,email,turno};
+  } else {
+    const novoId = Date.now().toString();
+    colaboradores.push({id:novoId,nome,matricula:mat,email,turno});
+  }
+  salvarFirebase();
+  renderColaboradores();
+  colabModal.classList.add('hidden');
 });
 </script>
 </body>
