@@ -44,7 +44,7 @@ tr:hover td{background:#fbfbfb}
     <label style="font-size:13px"><input type="checkbox" id="remember"> Lembrar login</label><br>
     <button id="loginBtn" class="add" style="width:92%;margin-top:6px">Entrar</button>
     <p id="loginMsg" style="color:crimson;margin-top:8px;height:18px"></p>
-    <p style="font-size:12px;color:#666;margin-top:6px">Usuário: <b>CLX</b> / Senha: <b>02072007</b></p>
+    <p style="font-size:12px;color:#666;margin-top:6px">Usuário: <b>admin</b> / Senha: <b>1234</b></p>
   </div>
 </div>
 
@@ -129,7 +129,7 @@ const rememberCheckbox = document.getElementById('remember');
 loginBtn.addEventListener('click', () => {
   const user = document.getElementById('user').value.trim();
   const pass = document.getElementById('pass').value.trim();
-  if(user==='admin' && pass==='1234'){
+  if(user==='CLX' && pass==='02072007'){
     loginScreen.style.display='none';
     mainApp.classList.remove('hidden');
     if(rememberCheckbox.checked) localStorage.setItem('autenticado','1');
