@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -260,6 +261,18 @@ async function removerColab(id) {
     await deleteDoc(doc(db, "colaboradores", id));
   }
 }
+
+/* LIMPAR TODOS OS PONTOS */
+document.getElementById('limparTodosBtn').onclick = async () => {
+  if (confirm("Deseja realmente excluir todos os pontos?")) {
+    pontos = [];
+    renderEntradasSaidas();
+    const col = await getDocs(collection(db, "pontos"));
+    for (let docSnap of col.docs) {
+      await deleteDoc(doc(db, "pontos", docSnap.id));
+    }
+  }
+};
 
 /* HORAS */
 function calcularHoras() {
