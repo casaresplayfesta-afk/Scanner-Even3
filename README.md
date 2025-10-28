@@ -2,7 +2,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ponto Eletrônico - Firebase com Abas por Dia</title>
+<title>Ponto Eletrônico - Firebase com Contabilidade de Horas</title>
 <style>
 :root{--blue:#003366;--green:#4CAF50;--yellow:#ff9800;--red:#f44336;}
 body{font-family:Arial,Helvetica,sans-serif;background:#f7f9fc;margin:0}
@@ -29,9 +29,7 @@ tr:hover td{background:#fbfbfb}
 .modal-content{background:#fff;padding:20px;border-radius:10px;width:95%;max-width:420px}
 .hidden{display:none}
 .top-right{display:flex;gap:8px;align-items:center}
-.abas{display:flex;gap:6px;margin-bottom:12px;}
-.abas button{padding:6px 10px;background:#ddd;border-radius:6px;}
-.abas button.active{background:var(--blue);color:#fff;}
+@media(max-width:720px){ header{flex-direction:column;align-items:flex-start} .controls{width:100%;justify-content:space-between} }
 </style>
 </head>
 <body>
@@ -69,37 +67,14 @@ tr:hover td{background:#fbfbfb}
   <table id="colabTable">
     <thead>
       <tr>
-        <th>#</th><th>ID</th><th>Nome</th><th>Matrícula / E-mail</th><th>Turno</th><th>Ações</th>
+        <th>#</th><th>ID</th><th>Nome</th><th>Matrícula / E-mail</th><th>Turno / Cargo</th><th>Ações</th>
       </tr>
     </thead>
     <tbody id="colabBody"></tbody>
   </table>
 
-  <!-- ABAS PARA DIAS DA SEMANA -->
-  <div class="abas">
-    <button class="active" data-dia="1">Segunda</button>
-    <button data-dia="2">Terça</button>
-    <button data-dia="3">Quarta</button>
-    <button data-dia="4">Quinta</button>
-    <button data-dia="5">Sexta</button>
-    <button data-dia="6">Sábado</button>
-  </div>
-
-  <div id="tabelasDias"></div>
-
-  <!-- RESUMO DE HORAS TRABALHADAS -->
-  <h3>Resumo de Horas Trabalhadas</h3>
-  <table id="horasTable">
-    <thead>
-      <tr>
-        <th>Funcionário</th><th>Data</th><th>Horas Trabalhadas</th>
-      </tr>
-    </thead>
-    <tbody id="horasBody"></tbody>
-    <tfoot>
-      <tr><td colspan="2"><b>Total Geral</b></td><td id="totalHoras">0</td></tr>
-    </tfoot>
-  </table>
+  <h3 style="margin-top:18px">Entradas e Saídas por Dia</h3>
+  <div id="semanasTabelas"></div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -129,9 +104,7 @@ const loginMsg = document.getElementById('loginMsg');
 const rememberCheckbox = document.getElementById('remember');
 const logoutBtn = document.getElementById('logoutBtn');
 const colabBody = document.getElementById('colabBody');
-const tabelasDias = document.getElementById('tabelasDias');
-const horasBody = document.getElementById('horasBody');
-const totalHorasCell = document.getElementById('totalHoras');
+const semanasTabelas = document.getElementById('semanasTabelas');
 
 loginBtn.addEventListener('click', async () => {
   const u = document.getElementById('user').value.trim();
@@ -170,8 +143,7 @@ async function carregarFirebase(){
 
 function renderAll(){
   renderColaboradores();
-  renderTabelasDias();
-  calcularHoras();
+  atualizarTabelasDias();
 }
 
 function renderColaboradores(){
@@ -183,106 +155,72 @@ function renderColaboradores(){
       <td>${c.matricula} <span class="small">(${c.email||''})</span></td>
       <td>${c.turno||''}</td>
       <td>
+        <input type="date" class="dataPonto" value="${new Date().toISOString().split('T')[0]}">
         <button class="add">Entrada</button>
         <button class="secondary">Saída</button>
         <button class="del">Excluir</button>
       </td>`;
-    tr.querySelector('.add').onclick=()=>registrarPonto(c.id,'Entrada');
-    tr.querySelector('.secondary').onclick=()=>registrarPonto(c.id,'Saída');
+      
+    tr.querySelector('.add').onclick=()=>registrarPonto(c.id,'Entrada', tr.querySelector('.dataPonto').value);
+    tr.querySelector('.secondary').onclick=()=>registrarPonto(c.id,'Saída', tr.querySelector('.dataPonto').value);
     tr.querySelector('.del').onclick=()=>removerColab(c.id);
     colabBody.appendChild(tr);
   });
 }
 
-function renderTabelasDias(){
-  tabelasDias.innerHTML='';
-  const diasSemana=['Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
-  diasSemana.forEach((dia,i)=>{
-    const table=document.createElement('table');
-    table.id='tabelaDia'+(i+1);
-    table.style.display=i===0?'table':'none';
-    table.innerHTML=`
-      <thead><tr>
-        <th>#</th><th>ID Colab</th><th>Nome</th><th>Matrícula</th><th>E-mail</th><th>Data</th><th>Hora</th><th>Ações</th>
-      </tr></thead>
-      <tbody></tbody>`;
-    tabelasDias.appendChild(table);
-  });
+async function registrarPonto(idColab, tipo, dataEscolhida){
+  const c = colaboradores.find(x=>x.id===idColab);
+  const now = new Date();
+  const hora = now.toLocaleTimeString('pt-BR',{hour12:false});
+  const p = {
+    id:Date.now().toString(),
+    idColab,
+    nome:c.nome,
+    matricula:c.matricula,
+    email:c.email,
+    tipo,
+    data: dataEscolhida,
+    hora,
+    horarioISO: new Date(dataEscolhida+'T'+hora).toISOString()
+  };
+  pontos.push(p);
+  await setDoc(doc(db,"pontos",p.id),p);
   atualizarTabelasDias();
 }
 
 function atualizarTabelasDias(){
-  const diasSemana=[1,2,3,4,5,6];
+  semanasTabelas.innerHTML='';
+  const diasSemana = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
   diasSemana.forEach(dia=>{
-    const tbody=document.querySelector('#tabelaDia'+dia+' tbody');
-    tbody.innerHTML='';
-    const diaPontos = pontos.filter(p=>{
-      const d = new Date(p.horarioISO).getDay();
-      // JS: domingo=0, segunda=1...
-      return d===dia;
+    const tabela = document.createElement('table');
+    tabela.innerHTML = `
+      <thead><tr><th>#</th><th>Nome</th><th>Matrícula</th><th>E-mail</th><th>Data</th><th>Hora</th><th>Tipo</th></tr></thead>
+      <tbody id="tbody-${dia}"></tbody>
+    `;
+    const h3 = document.createElement('h4');
+    h3.textContent = dia;
+    semanasTabelas.appendChild(h3);
+    semanasTabelas.appendChild(tabela);
+
+    const tbody = tabela.querySelector('tbody');
+    const pontosDia = pontos.filter(p=>{
+      const data = new Date(p.data);
+      const diaIndex = data.getDay(); // domingo=0
+      return (diaIndex === (diasSemana.indexOf(dia)+1)); // segunda=1
     });
-    diaPontos.forEach((p,i)=>{
-      const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${i+1}</td><td>${p.idColab}</td><td>${p.nome}</td><td>${p.matricula}</td><td>${p.email||''}</td><td>${p.data}</td><td>${p.hora}</td><td><button class="del">Excluir</button></td>`;
-      tr.querySelector('.del').onclick=()=>excluirPonto(p.id);
+
+    pontosDia.forEach((p,i)=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${i+1}</td><td>${p.nome}</td><td>${p.matricula}</td><td>${p.email||''}</td><td>${p.data}</td><td>${p.hora}</td><td>${p.tipo}</td>`;
       tbody.appendChild(tr);
     });
   });
 }
 
-async function registrarPonto(idColab,tipo){
-  const c=colaboradores.find(x=>x.id===idColab);
-  const now=new Date();
-  const p={id:Date.now().toString(),idColab,nome:c.nome,matricula:c.matricula,email:c.email,tipo,data:now.toLocaleDateString('pt-BR'),hora:now.toLocaleTimeString('pt-BR',{hour12:false}), horarioISO:now.toISOString()};
-  pontos.push(p); 
-  atualizarTabelasDias(); 
-  calcularHoras();
-  await setDoc(doc(db,"pontos",p.id),p);
-}
-
-function calcularHoras(){
-  horasBody.innerHTML='';
-  let dados={};
-  pontos.forEach(p=>{
-    if(!dados[p.nome]) dados[p.nome]={};
-    if(!dados[p.nome][p.data]) dados[p.nome][p.data]=[];
-    dados[p.nome][p.data].push(p);
-  });
-  let totalGeral=0;
-  Object.keys(dados).forEach(nome=>{
-    Object.keys(dados[nome]).forEach(data=>{
-      let reg=dados[nome][data].sort((a,b)=>new Date(a.horarioISO)-new Date(b.horarioISO));
-      let entrada=null,total=0;
-      reg.forEach(r=>{
-        const hora=new Date(r.horarioISO);
-        if(r.tipo==='Entrada') entrada=hora;
-        if(r.tipo==='Saída' && entrada){
-          total+=(hora-entrada)/3600000;
-          entrada=null;
-        }
-      });
-      totalGeral+=total;
-      const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${nome}</td><td>${data}</td><td>${total.toFixed(2)} h</td>`;
-      horasBody.appendChild(tr);
-    });
-  });
-  totalHorasCell.textContent=totalGeral.toFixed(2)+" h";
-}
-
-async function excluirPonto(id){
-  if(confirm("Excluir este ponto permanentemente?")){
-    pontos=pontos.filter(p=>p.id!==id); 
-    atualizarTabelasDias();
-    calcularHoras();
-    try { await deleteDoc(doc(db,"pontos",id)); } catch(err){ console.error(err); }
-  }
-}
-
 async function removerColab(id){
   if(confirm("Excluir colaborador permanentemente?")){
-    colaboradores=colaboradores.filter(c=>c.id!==id);
-    pontos=pontos.filter(p=>p.idColab!==id);
+    colaboradores = colaboradores.filter(c=>c.id!==id);
+    pontos = pontos.filter(p=>p.idColab!==id);
     renderAll();
     try {
       await deleteDoc(doc(db,"colaboradores",id));
@@ -292,38 +230,19 @@ async function removerColab(id){
   }
 }
 
-/* ABAS DIAS */
-document.querySelectorAll('.abas button').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.abas button').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    const dia=parseInt(btn.dataset.dia);
-    for(let i=1;i<=6;i++){
-      document.getElementById('tabelaDia'+i).style.display=i===dia?'table':'none';
-    }
-  });
-});
-
 /* EXPORTAR */
-baixarBtn.onclick=()=>{
-  const wb=XLSX.utils.book_new();
+document.getElementById('baixarBtn').onclick=()=>{
+  const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(colaboradores),'Colaboradores');
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(pontos),'Pontos');
-  const resumo=[];
-  horasBody.querySelectorAll('tr').forEach(r=>{
-    const tds=r.querySelectorAll('td');
-    resumo.push({Funcionário:tds[0].textContent,Data:tds[1].textContent,"Horas Trabalhadas":tds[2].textContent});
-  });
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(resumo),'Resumo de Horas');
   XLSX.writeFile(wb,'PontoEletronico.xlsx');
 };
 
 /* LIMPAR */
-limparTodosBtn.onclick=()=>{ 
+document.getElementById('limparTodosBtn').onclick=()=>{ 
   if(confirm("Limpar todos os pontos?")){ 
     pontos=[]; 
     atualizarTabelasDias(); 
-    calcularHoras();
   } 
 };
 </script>
