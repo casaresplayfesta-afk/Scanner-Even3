@@ -1,207 +1,296 @@
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ponto Eletrônico Corporativo</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ponto Eletrônico - Firebase com Pesquisa e Cargo</title>
 <style>
-body { font-family: Arial, sans-serif; background:#e0f7fa; margin:0; padding:20px; }
-.container { background:white; padding:25px; border-radius:15px; box-shadow:0 6px 15px rgba(0,0,0,0.3); max-width:900px; margin:auto 0 20px auto; }
-h2 { color:#00796b; text-align:center; margin-bottom:15px; }
-button, select, input { padding:8px 12px; margin:5px; font-size:14px; border-radius:8px; border:none; cursor:pointer; }
-button:hover { opacity:0.85; }
-#entrada { background-color:#4CAF50; color:white; }
-#saida { background-color:#f44336; color:white; }
-#inicioIntervalo { background-color:#FF9800; color:white; }
-#fimIntervalo { background-color:#9C27B0; color:white; }
-#exportar { background-color:#2196F3; color:white; }
-#limpar { background-color:#607D8B; color:white; }
-table { width:100%; margin-top:15px; border-collapse: collapse; font-size:14px; }
-th, td { border:1px solid #ddd; padding:8px; text-align:center; }
-th { background-color:#b2dfdb; color:#004d40; }
-td { font-weight:500; }
-canvas { margin-top:25px; }
-.flex { display:flex; flex-wrap:wrap; justify-content:center; }
+:root{--blue:#003366;--green:#4CAF50;--yellow:#ff9800;--red:#f44336;}
+body{font-family:Arial,Helvetica,sans-serif;background:#f7f9fc;margin:0}
+header{background:var(--blue);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{font-weight:700}
+#clock{font-weight:700}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button{padding:8px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:600}
+.add{background:var(--green);color:#fff}
+.secondary{background:#e0e0e0;color:#222}
+.download{background:var(--yellow);color:#111}
+main{padding:18px;max-width:1100px;margin:18px auto}
+.search{width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,0.06)}
+th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;font-size:14px}
+th{background:#fafafa;font-weight:700}
+tr:hover td{background:#fbfbfb}
+.small{font-size:13px;color:#666;margin-left:6px}
+.muted{color:#666;font-size:13px}
+.flex-row{display:flex;gap:8px;align-items:center}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:999}
+.modal-content{background:#fff;padding:20px;border-radius:10px;width:95%;max-width:420px}
+.hidden{display:none}
+.top-right{display:flex;gap:8px;align-items:center}
+@media(max-width:720px){ header{flex-direction:column;align-items:flex-start} .controls{width:100%;justify-content:space-between} }
 </style>
 </head>
 <body>
-<div class="container">
-<h2>Ponto Eletrônico Corporativo</h2>
-<div class="flex">
-<select id="funcionario"></select>
-<input type="text" id="novoFuncionario" placeholder="Novo funcionário">
-<button id="adicionarFuncionario">Adicionar Funcionário</button>
+
+<!-- LOGIN -->
+<div id="loginScreen" style="position:fixed;inset:0;background:var(--blue);display:flex;align-items:center;justify-content:center;z-index:9999">
+  <div style="background:#fff;padding:28px;border-radius:10px;width:92%;max-width:360px;text-align:center">
+    <h2>Login do Sistema</h2>
+    <input id="user" placeholder="Usuário" style="width:92%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ccc"><br>
+    <input id="pass" type="password" placeholder="Senha" style="width:92%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ccc"><br>
+    <label style="font-size:13px"><input type="checkbox" id="remember"> Lembrar login</label><br>
+    <button id="loginBtn" class="add" style="width:92%;margin-top:6px">Entrar</button>
+    <p id="loginMsg" style="color:crimson;margin-top:8px;height:18px"></p>
+    <p style="font-size:12px;color:#666;margin-top:6px">Usuário: <b>CLX</b> / Senha: <b>02072007</b></p>
+  </div>
 </div>
-<div class="flex">
-<button id="entrada">Entrada</button>
-<button id="saida">Saída</button>
-<button id="inicioIntervalo">Início Intervalo</button>
-<button id="fimIntervalo">Fim Intervalo</button>
-<button id="exportar">Exportar CSV</button>
-<button id="limpar">Limpar Registros</button>
-</div>
-<table>
-<thead>
-<tr>
-<th>Funcionário</th>
-<th>Data</th>
-<th>Tipo</th>
-<th>Horário</th>
-<th>Horas Trabalhadas</th>
-</tr>
-</thead>
-<tbody id="tabelaPonto"></tbody>
-<tfoot>
-<tr>
-<td colspan="4"><strong>Total de Horas</strong></td>
-<td id="totalHoras">0</td>
-</tr>
-</tfoot>
-</table>
-</div>
-<div class="container">
-<h2>Dashboard Corporativo</h2>
-<canvas id="chartDias"></canvas>
-<canvas id="chartSemana"></canvas>
-</div>
-<script>
-const funcionarioSelect = document.getElementById('funcionario');
-const tabela = document.getElementById('tabelaPonto');
-const totalHorasCell = document.getElementById('totalHoras');
 
-function carregarFuncionarios() {
-let funcionarios = JSON.parse(localStorage.getItem('funcionarios')) || [];
-funcionarioSelect.innerHTML = '';
-funcionarios.forEach(f => {
-const option = document.createElement('option');
-option.value = f;
-option.text = f;
-funcionarioSelect.appendChild(option);
-});
-if(funcionarios.length === 0) {
-funcionarioSelect.innerHTML = '<option value="">Sem funcionários</option>';
-}
-}
+<header>
+  <div style="display:flex;gap:12px;align-items:center">
+    <div class="logo">Ponto Eletrônico</div>
+    <div id="status" class="muted">Offline • Local Storage</div>
+  </div>
+  <div id="clock">--:--:--</div>
+  <div class="controls top-right">
+    <button class="download" id="baixarBtn">Baixar Planilha</button>
+    <button class="secondary" id="limparTodosBtn">Limpar Pontos</button>
+    <button class="secondary" id="logoutBtn">Sair</button>
+  </div>
+</header>
 
-document.getElementById('adicionarFuncionario').addEventListener('click', () => {
-const nome = document.getElementById('novoFuncionario').value.trim();
-if(!nome) return alert('Digite um nome!');
-let funcionarios = JSON.parse(localStorage.getItem('funcionarios')) || [];
-if(!funcionarios.includes(nome)) {
-funcionarios.push(nome);
-localStorage.setItem('funcionarios', JSON.stringify(funcionarios));
-document.getElementById('novoFuncionario').value = '';
-carregarFuncionarios();
-} else {
-alert('Funcionário já existe!');
-}
-});
+<main id="mainApp" class="hidden">
 
-function registrarPonto(tipo) {
-const funcionario = funcionarioSelect.value;
-if(!funcionario) return alert('Selecione um funcionário!');
-const agora = new Date();
-let registros = JSON.parse(localStorage.getItem('registros')) || [];
-registros.push({ funcionario, tipo, horario: agora.toLocaleTimeString(), data: agora.toLocaleDateString(), horarioISO: agora.toISOString() });
-localStorage.setItem('registros', JSON.stringify(registros));
-atualizarTabela();
-}
+  <!-- CAMPO DE PESQUISA -->
+  <input id="search" class="search" placeholder="🔍 Pesquisar colaborador por nome, cargo, matrícula ou e-mail">
 
-function calcularHorasPorFuncionario() {
-let registros = JSON.parse(localStorage.getItem('registros')) || [];
-let dados = {};
-registros.forEach(r => {
-if(!dados[r.funcionario]) dados[r.funcionario] = {};
-if(!dados[r.funcionario][r.data]) dados[r.funcionario][r.data] = [];
-dados[r.funcionario][r.data].push(r);
-});
-let totalGeral = 0;
-let horasFuncionario = {};
-Object.keys(dados).forEach(f => {
-horasFuncionario[f] = 0;
-Object.keys(dados[f]).forEach(d => {
-let diaRegistros = dados[f][d];
-let entrada = null, inicioIntervalo = null, total = 0;
-diaRegistros.forEach(r => {
-let hora = new Date(r.horarioISO);
-if(r.tipo==='Entrada') entrada=hora;
-if(r.tipo==='Início Intervalo') inicioIntervalo=hora;
-if(r.tipo==='Fim Intervalo'&&inicioIntervalo){
-total+=(hora-inicioIntervalo)/3600000;
-inicioIntervalo=null;
-}
-if(r.tipo==='Saída'&&entrada){
-if(inicioIntervalo){
-total+=(hora-inicioIntervalo)/3600000;
-inicioIntervalo=null;
-} else total+=(hora-entrada)/3600000;
-entrada=null;
-}
-});
-horasFuncionario[f]+=total;
-totalGeral+=total;
-});
-});
-return { totalGeral: totalGeral.toFixed(2), horasFuncionario };
-}
+  <h3>Colaboradores</h3>
+  <button class="add" id="addColabBtn">Adicionar Colaborador</button>
 
-function atualizarTabela() {
-tabela.innerHTML = '';
-let registros = JSON.parse(localStorage.getItem('registros')) || [];
-let { totalGeral } = calcularHorasPorFuncionario();
-registros.forEach(r => {
-const linha = document.createElement('tr');
-const horas = totalGeral;
-linha.innerHTML = `<td>${r.funcionario}</td><td>${r.data}</td><td>${r.tipo}</td><td>${r.horario}</td><td>${horas}</td>`;
-tabela.appendChild(linha);
-});
-totalHorasCell.innerText = totalGeral;
-atualizarGraficos();
+  <table id="colabTable">
+    <thead>
+      <tr>
+        <th>#</th><th>ID</th><th>Nome</th><th>Cargo</th><th>Matrícula / E-mail</th><th>Turno</th><th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="colabBody"></tbody>
+  </table>
+
+  <h3 style="margin-top:18px">Entradas Registradas</h3>
+  <table id="entradasTable">
+    <thead><tr><th>#</th><th>ID Colab</th><th>Nome</th><th>Data</th><th>Hora</th><th>Ações</th></tr></thead>
+    <tbody id="entradasBody"></tbody>
+  </table>
+
+  <h3 style="margin-top:18px">Saídas Registradas</h3>
+  <table id="saidasTable">
+    <thead><tr><th>#</th><th>ID Colab</th><th>Nome</th><th>Data</th><th>Hora</th><th>Ações</th></tr></thead>
+    <tbody id="saidasBody"></tbody>
+  </table>
+
+  <h3 style="margin-top:18px">Resumo de Horas Trabalhadas</h3>
+  <table id="horasTable">
+    <thead><tr><th>Funcionário</th><th>Data</th><th>Horas Trabalhadas</th></tr></thead>
+    <tbody id="horasBody"></tbody>
+    <tfoot><tr><td colspan="2"><b>Total Geral</b></td><td id="totalHoras">0</td></tr></tfoot>
+  </table>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCpBiFzqOod4K32cWMr5hfx13fw6LGcPVY",
+  authDomain: "ponto-eletronico-f35f9.firebaseapp.com",
+  projectId: "ponto-eletronico-f35f9",
+  storageBucket: "ponto-eletronico-f35f9.firebasestorage.app",
+  messagingSenderId: "208638350255",
+  appId: "1:208638350255:web:63d016867a67575b5e155a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let colaboradores = [];
+let pontos = [];
+
+/* LOGIN */
+const loginScreen = document.getElementById('loginScreen');
+const mainApp = document.getElementById('mainApp');
+document.getElementById('loginBtn').onclick = async () => {
+  const u = document.getElementById('user').value.trim();
+  const p = document.getElementById('pass').value.trim();
+  if (u === 'CLX' && p === '02072007') {
+    loginScreen.style.display = 'none';
+    mainApp.classList.remove('hidden');
+    if (document.getElementById('remember').checked)
+      localStorage.setItem('autenticado', '1');
+    await carregarFirebase();
+  } else {
+    document.getElementById('loginMsg').textContent = 'Usuário ou senha incorretos.';
+  }
+};
+if (localStorage.getItem('autenticado') === '1') {
+  loginScreen.style.display = 'none';
+  mainApp.classList.remove('hidden');
+  carregarFirebase();
+}
+document.getElementById('logoutBtn').onclick = () => {
+  localStorage.removeItem('autenticado');
+  location.reload();
+};
+
+/* RELÓGIO */
+setInterval(() => {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('pt-BR', { hour12: false });
+}, 1000);
+
+/* FIREBASE */
+async function carregarFirebase() {
+  const colabs = await getDocs(collection(db, "colaboradores"));
+  colaboradores = colabs.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const pts = await getDocs(collection(db, "pontos"));
+  pontos = pts.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  document.getElementById('status').textContent = "Online • Firebase";
+  renderAll();
 }
 
-document.getElementById('entrada').addEventListener('click', ()=>registrarPonto('Entrada'));
-document.getElementById('saida').addEventListener('click', ()=>registrarPonto('Saída'));
-document.getElementById('inicioIntervalo').addEventListener('click', ()=>registrarPonto('Início Intervalo'));
-document.getElementById('fimIntervalo').addEventListener('click', ()=>registrarPonto('Fim Intervalo'));
-document.getElementById('exportar').addEventListener('click', ()=>{
-let registros = JSON.parse(localStorage.getItem('registros')) || [];
-if(registros.length===0){ alert('Nenhum registro para exportar!'); return; }
-let csv='Funcionário,Data,Tipo,Horário,Horas Trabalhadas\n';
-registros.forEach(r=>{
-const { totalGeral } = calcularHorasPorFuncionario();
-csv+=`${r.funcionario},${r.data},${r.tipo},${r.horario},${totalGeral}\n`;
-});
-const blob=new Blob([csv],{type:'text/csv'});
-const url=URL.createObjectURL(blob);
-const a=document.createElement('a');
-a.href=url;
-a.download='registros_ponto.csv';
-a.click();
-URL.revokeObjectURL(url);
-});
-document.getElementById('limpar').addEventListener('click', ()=>{
-if(confirm('Deseja realmente limpar todos os registros?')){
-localStorage.removeItem('registros');
-atualizarTabela();
+function renderAll() {
+  renderColaboradores();
+  renderEntradasSaidas();
+  calcularHoras();
 }
+
+/* PESQUISA */
+const searchInput = document.getElementById('search');
+searchInput.addEventListener('input', () => {
+  renderColaboradores(searchInput.value.toLowerCase());
 });
 
-window.onload = ()=>{ carregarFuncionarios(); atualizarTabela(); };
+/* RENDERIZAÇÃO */
+function renderColaboradores(filtro = '') {
+  const body = document.getElementById('colabBody');
+  body.innerHTML = '';
+  colaboradores
+    .filter(c =>
+      c.nome?.toLowerCase().includes(filtro) ||
+      c.cargo?.toLowerCase().includes(filtro) ||
+      c.matricula?.toLowerCase().includes(filtro) ||
+      c.email?.toLowerCase().includes(filtro)
+    )
+    .forEach((c, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${c.id}</td>
+        <td>${c.nome}</td>
+        <td>${c.cargo || '—'}</td>
+        <td>${c.matricula || ''} <span class="small">${c.email || ''}</span></td>
+        <td>${c.turno || ''}</td>
+        <td>
+          <button class="add">Entrada</button>
+          <button class="secondary">Saída</button>
+          <button class="del">Excluir</button>
+        </td>`;
+      tr.querySelector('.add').onclick = () => registrarPonto(c.id, 'Entrada');
+      tr.querySelector('.secondary').onclick = () => registrarPonto(c.id, 'Saída');
+      tr.querySelector('.del').onclick = () => removerColab(c.id);
+      body.appendChild(tr);
+    });
+}
 
-// Gráficos corporativos
-let chartDias=null;
-let chartSemana=null;
-function atualizarGraficos(){
-let registros = JSON.parse(localStorage.getItem('registros')) || [];
-let { horasFuncionario } = calcularHorasPorFuncionario();
-const labels = Object.keys(horasFuncionario);
-const data = Object.values(horasFuncionario);
-if(chartDias) chartDias.destroy();
-const ctxDias=document.getElementById('chartDias').getContext('2d');
-chartDias = new Chart(ctxDias,{type:'bar',data:{labels, datasets:[{label:'Horas por Funcionário',data, backgroundColor:'#4CAF50'}]}, options:{responsive:true, plugins:{legend:{display:false}}}});
-if(chartSemana) chartSemana.destroy();
-const ctxSemana=document.getElementById('chartSemana').getContext('2d');
-chartSemana = new Chart(ctxSemana,{type:'line', data:{labels, datasets:[{label:'Horas Semanais', data, borderColor:'#2196F3', fill:false} ] }, options:{responsive:true, plugins:{legend:{display:false}}}});
+/* ENTRADAS / SAÍDAS */
+function renderEntradasSaidas() {
+  const entBody = document.getElementById('entradasBody');
+  const saiBody = document.getElementById('saidasBody');
+  entBody.innerHTML = '';
+  saiBody.innerHTML = '';
+  pontos.filter(p => p.tipo === 'Entrada').forEach((p, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i + 1}</td><td>${p.idColab}</td><td>${p.nome}</td><td>${p.data}</td><td>${p.hora}</td><td><button class="del">Excluir</button></td>`;
+    tr.querySelector('.del').onclick = () => excluirPonto(p.id);
+    entBody.appendChild(tr);
+  });
+  pontos.filter(p => p.tipo === 'Saída').forEach((p, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i + 1}</td><td>${p.idColab}</td><td>${p.nome}</td><td>${p.data}</td><td>${p.hora}</td><td><button class="del">Excluir</button></td>`;
+    tr.querySelector('.del').onclick = () => excluirPonto(p.id);
+    saiBody.appendChild(tr);
+  });
+  calcularHoras();
+}
+
+/* REGISTRO */
+async function registrarPonto(idColab, tipo) {
+  const c = colaboradores.find(x => x.id === idColab);
+  if (!c) return alert("Colaborador não encontrado!");
+  const now = new Date();
+  const p = {
+    id: Date.now().toString(),
+    idColab,
+    nome: c.nome,
+    matricula: c.matricula,
+    email: c.email,
+    tipo,
+    data: now.toLocaleDateString('pt-BR'),
+    hora: now.toLocaleTimeString('pt-BR', { hour12: false }),
+    horarioISO: now.toISOString()
+  };
+  pontos.push(p);
+  renderEntradasSaidas();
+  await setDoc(doc(db, "pontos", p.id), p);
+}
+
+/* EXCLUSÃO */
+async function excluirPonto(id) {
+  if (confirm("Excluir este ponto permanentemente?")) {
+    pontos = pontos.filter(p => p.id !== id);
+    renderEntradasSaidas();
+    await deleteDoc(doc(db, "pontos", id));
+  }
+}
+
+async function removerColab(id) {
+  if (confirm("Excluir colaborador permanentemente?")) {
+    colaboradores = colaboradores.filter(c => c.id !== id);
+    pontos = pontos.filter(p => p.idColab !== id);
+    renderAll();
+    await deleteDoc(doc(db, "colaboradores", id));
+  }
+}
+
+/* HORAS */
+function calcularHoras() {
+  const horasBody = document.getElementById('horasBody');
+  const totalHorasCell = document.getElementById('totalHoras');
+  horasBody.innerHTML = '';
+  let dados = {}, totalGeral = 0;
+  pontos.forEach(p => {
+    if (!dados[p.nome]) dados[p.nome] = {};
+    if (!dados[p.nome][p.data]) dados[p.nome][p.data] = [];
+    dados[p.nome][p.data].push(p);
+  });
+  Object.keys(dados).forEach(nome => {
+    Object.keys(dados[nome]).forEach(data => {
+      let reg = dados[nome][data].sort((a, b) => new Date(a.horarioISO) - new Date(b.horarioISO));
+      let entrada = null, total = 0;
+      reg.forEach(r => {
+        const hora = new Date(r.horarioISO);
+        if (r.tipo === 'Entrada') entrada = hora;
+        if (r.tipo === 'Saída' && entrada) {
+          total += (hora - entrada) / 3600000;
+          entrada = null;
+        }
+      });
+      totalGeral += total;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${nome}</td><td>${data}</td><td>${total.toFixed(2)} h</td>`;
+      horasBody.appendChild(tr);
+    });
+  });
+  totalHorasCell.textContent = totalGeral.toFixed(2) + ' h';
 }
 </script>
 </body>
