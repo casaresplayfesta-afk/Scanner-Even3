@@ -18,7 +18,7 @@ button{padding:8px 12px;border:none;border-radius:6px;cursor:pointer;font-weight
 .secondary{background:#e0e0e0;color:#222}
 main{padding:18px;max-width:1100px;margin:18px auto}
 .search{width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;margin-bottom:12px}
-table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,0.06);margin-bottom:20px;}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,0.06);margin-bottom:18px;}
 th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;font-size:14px}
 th{background:#fafafa;font-weight:700}
 tr:hover td{background:#fbfbfb}
@@ -73,8 +73,29 @@ tr:hover td{background:#fbfbfb}
     <tbody id="colabBody"></tbody>
   </table>
 
-  <h3 style="margin-top:18px">Entradas e Saídas por Dia</h3>
-  <div id="semanasTabelas"></div>
+  <h3 style="margin-top:18px">Entradas Registradas</h3>
+  <table id="entradasTable">
+    <thead>
+      <tr>
+        <th>#</th><th>ID Colab</th><th>Nome</th><th>Matrícula</th><th>E-mail</th><th>Data</th><th>Hora</th><th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="entradasBody"></tbody>
+  </table>
+
+  <h3 style="margin-top:18px">Saídas Registradas</h3>
+  <table id="saidasTable">
+    <thead>
+      <tr>
+        <th>#</th><th>ID Colab</th><th>Nome</th><th>Matrícula</th><th>E-mail</th><th>Data</th><th>Hora</th><th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="saidasBody"></tbody>
+  </table>
+
+  <!-- TABELAS POR DIA DA SEMANA -->
+  <h3 style="margin-top:18px">Horas por Dia da Semana</h3>
+  <div id="tabelasDias"></div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -104,7 +125,9 @@ const loginMsg = document.getElementById('loginMsg');
 const rememberCheckbox = document.getElementById('remember');
 const logoutBtn = document.getElementById('logoutBtn');
 const colabBody = document.getElementById('colabBody');
-const semanasTabelas = document.getElementById('semanasTabelas');
+const entradasBody = document.getElementById('entradasBody');
+const saidasBody = document.getElementById('saidasBody');
+const tabelasDiasDiv = document.getElementById('tabelasDias');
 
 loginBtn.addEventListener('click', async () => {
   const u = document.getElementById('user').value.trim();
@@ -143,6 +166,7 @@ async function carregarFirebase(){
 
 function renderAll(){
   renderColaboradores();
+  renderEntradasSaidas();
   atualizarTabelasDias();
 }
 
@@ -153,74 +177,61 @@ function renderColaboradores(){
     tr.innerHTML=`
       <td>${i+1}</td><td>${c.id}</td><td>${c.nome}</td>
       <td>${c.matricula} <span class="small">(${c.email||''})</span></td>
-      <td>${c.turno||''}</td>
+      <td>${c.turno||''} / ${c.cargo||''}</td>
       <td>
-        <input type="date" class="dataPonto" value="${new Date().toISOString().split('T')[0]}">
         <button class="add">Entrada</button>
         <button class="secondary">Saída</button>
         <button class="del">Excluir</button>
       </td>`;
-      
-    tr.querySelector('.add').onclick=()=>registrarPonto(c.id,'Entrada', tr.querySelector('.dataPonto').value);
-    tr.querySelector('.secondary').onclick=()=>registrarPonto(c.id,'Saída', tr.querySelector('.dataPonto').value);
+    tr.querySelector('.add').onclick=()=>registrarPonto(c.id,'Entrada');
+    tr.querySelector('.secondary').onclick=()=>registrarPonto(c.id,'Saída');
     tr.querySelector('.del').onclick=()=>removerColab(c.id);
     colabBody.appendChild(tr);
   });
 }
 
-async function registrarPonto(idColab, tipo, dataEscolhida){
-  const c = colaboradores.find(x=>x.id===idColab);
-  const now = new Date();
-  const hora = now.toLocaleTimeString('pt-BR',{hour12:false});
-  const p = {
-    id:Date.now().toString(),
-    idColab,
-    nome:c.nome,
-    matricula:c.matricula,
-    email:c.email,
-    tipo,
-    data: dataEscolhida,
-    hora,
-    horarioISO: new Date(dataEscolhida+'T'+hora).toISOString()
-  };
-  pontos.push(p);
-  await setDoc(doc(db,"pontos",p.id),p);
-  atualizarTabelasDias();
+function renderEntradasSaidas(){
+  entradasBody.innerHTML='';
+  saidasBody.innerHTML='';
+  const entradas=pontos.filter(p=>p.tipo==='Entrada');
+  const saidas=pontos.filter(p=>p.tipo==='Saída');
+  entradas.forEach((p,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${i+1}</td><td>${p.idColab}</td><td>${p.nome}</td><td>${p.matricula}</td><td>${p.email||''}</td><td>${p.data}</td><td>${p.hora}</td><td><button class="del">Excluir</button></td>`;
+    tr.querySelector('.del').onclick=()=>excluirPonto(p.id);
+    entradasBody.appendChild(tr);
+  });
+  saidas.forEach((p,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${i+1}</td><td>${p.idColab}</td><td>${p.nome}</td><td>${p.matricula}</td><td>${p.email||''}</td><td>${p.data}</td><td>${p.hora}</td><td><button class="del">Excluir</button></td>`;
+    tr.querySelector('.del').onclick=()=>excluirPonto(p.id);
+    saidasBody.appendChild(tr);
+  });
 }
 
-function atualizarTabelasDias(){
-  semanasTabelas.innerHTML='';
-  const diasSemana = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
-  diasSemana.forEach(dia=>{
-    const tabela = document.createElement('table');
-    tabela.innerHTML = `
-      <thead><tr><th>#</th><th>Nome</th><th>Matrícula</th><th>E-mail</th><th>Data</th><th>Hora</th><th>Tipo</th></tr></thead>
-      <tbody id="tbody-${dia}"></tbody>
-    `;
-    const h3 = document.createElement('h4');
-    h3.textContent = dia;
-    semanasTabelas.appendChild(h3);
-    semanasTabelas.appendChild(tabela);
+async function registrarPonto(idColab,tipo){
+  const c=colaboradores.find(x=>x.id===idColab);
+  const now=new Date();
+  const p={id:Date.now().toString(),idColab,nome:c.nome,matricula:c.matricula,email:c.email,tipo,data:now.toLocaleDateString('pt-BR'),hora:now.toLocaleTimeString('pt-BR',{hour12:false}), horarioISO:now.toISOString()};
+  pontos.push(p); 
+  renderEntradasSaidas(); 
+  atualizarTabelasDias();
+  await setDoc(doc(db,"pontos",p.id),p);
+}
 
-    const tbody = tabela.querySelector('tbody');
-    const pontosDia = pontos.filter(p=>{
-      const data = new Date(p.data);
-      const diaIndex = data.getDay(); // domingo=0
-      return (diaIndex === (diasSemana.indexOf(dia)+1)); // segunda=1
-    });
-
-    pontosDia.forEach((p,i)=>{
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${i+1}</td><td>${p.nome}</td><td>${p.matricula}</td><td>${p.email||''}</td><td>${p.data}</td><td>${p.hora}</td><td>${p.tipo}</td>`;
-      tbody.appendChild(tr);
-    });
-  });
+async function excluirPonto(id){
+  if(confirm("Excluir este ponto permanentemente?")){
+    pontos=pontos.filter(p=>p.id!==id); 
+    renderEntradasSaidas();
+    atualizarTabelasDias();
+    try { await deleteDoc(doc(db,"pontos",id)); } catch(err){ console.error(err); }
+  }
 }
 
 async function removerColab(id){
   if(confirm("Excluir colaborador permanentemente?")){
-    colaboradores = colaboradores.filter(c=>c.id!==id);
-    pontos = pontos.filter(p=>p.idColab!==id);
+    colaboradores=colaboradores.filter(c=>c.id!==id);
+    pontos=pontos.filter(p=>p.idColab!==id);
     renderAll();
     try {
       await deleteDoc(doc(db,"colaboradores",id));
@@ -230,19 +241,45 @@ async function removerColab(id){
   }
 }
 
+/* TABELAS POR DIA */
+function atualizarTabelasDias(){
+  tabelasDiasDiv.innerHTML='';
+  const diasSemana=['Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  diasSemana.forEach(dia=>{
+    const table=document.createElement('table');
+    table.innerHTML=`<thead><tr><th>#</th><th>Nome</th><th>Data</th><th>Hora</th><th>Tipo</th></tr></thead><tbody></tbody>`;
+    const tbody=table.querySelector('tbody');
+    const pontosDia = pontos.filter(p=>{
+      const data = new Date(p.data.split('/').reverse().join('-'));
+      const diaIndex = data.getDay(); // domingo=0
+      return diaIndex>0 && diaIndex<=6 && diasSemana[diaIndex-1]===dia;
+    });
+    pontosDia.forEach((p,i)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${i+1}</td><td>${p.nome}</td><td>${p.data}</td><td>${p.hora}</td><td>${p.tipo}</td>`;
+      tbody.appendChild(tr);
+    });
+    const titulo=document.createElement('h4');
+    titulo.textContent=dia;
+    tabelasDiasDiv.appendChild(titulo);
+    tabelasDiasDiv.appendChild(table);
+  });
+}
+
 /* EXPORTAR */
 document.getElementById('baixarBtn').onclick=()=>{
-  const wb = XLSX.utils.book_new();
+  const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(colaboradores),'Colaboradores');
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(pontos),'Pontos');
   XLSX.writeFile(wb,'PontoEletronico.xlsx');
-};
+}
 
 /* LIMPAR */
 document.getElementById('limparTodosBtn').onclick=()=>{ 
   if(confirm("Limpar todos os pontos?")){ 
     pontos=[]; 
-    atualizarTabelasDias(); 
+    renderEntradasSaidas(); 
+    atualizarTabelasDias();
   } 
 };
 </script>
