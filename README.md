@@ -2,7 +2,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ponto Eletrônico - Firebase</title>
+<title>Ponto Eletrônico - Firebase com Contabilidade de Horas</title>
 <style>
 :root{--blue:#003366;--green:#4CAF50;--yellow:#ff9800;--red:#f44336;}
 body{font-family:Arial,Helvetica,sans-serif;background:#f7f9fc;margin:0}
@@ -43,7 +43,7 @@ tr:hover td{background:#fbfbfb}
     <label style="font-size:13px"><input type="checkbox" id="remember"> Lembrar login</label><br>
     <button id="loginBtn" class="add" style="width:92%;margin-top:6px">Entrar</button>
     <p id="loginMsg" style="color:crimson;margin-top:8px;height:18px"></p>
-    <p style="font-size:12px;color:#666;margin-top:6px">Usuário: <b>admin</b> / Senha: <b>1234</b></p>
+    <p style="font-size:12px;color:#666;margin-top:6px">Usuário: <b>CLX</b> / Senha: <b>02072007</b></p>
   </div>
 </div>
 
@@ -92,30 +92,28 @@ tr:hover td{background:#fbfbfb}
     </thead>
     <tbody id="saidasBody"></tbody>
   </table>
-</main>
 
-<!-- MODAL -->
-<div id="colabModal" class="modal hidden">
-  <div class="modal-content">
-    <h3 id="colabTitle">Novo Colaborador</h3>
-    <input type="hidden" id="colabId">
-    <label>Nome</label><br><input id="colabNome" style="width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ccc">
-    <label>Matrícula</label><br><input id="colabMatricula" style="width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ccc">
-    <label>E-mail</label><br><input id="colabEmail" style="width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ccc">
-    <label>Turno</label><br><input id="colabTurno" style="width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ccc">
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-      <button id="saveColabBtn" class="add">Salvar</button>
-      <button id="cancelColabBtn" class="secondary">Cancelar</button>
-    </div>
-  </div>
-</div>
+  <!-- NOVA TABELA DE HORAS TRABALHADAS -->
+  <h3 style="margin-top:18px">Resumo de Horas Trabalhadas</h3>
+  <table id="horasTable">
+    <thead>
+      <tr>
+        <th>Funcionário</th><th>Data</th><th>Horas Trabalhadas</th>
+      </tr>
+    </thead>
+    <tbody id="horasBody"></tbody>
+    <tfoot>
+      <tr><td colspan="2"><b>Total Geral</b></td><td id="totalHoras">0</td></tr>
+    </tfoot>
+  </table>
+
+</main>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
 import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
-// CONFIG FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyCpBiFzqOod4K32cWMr5hfx13fw6LGcPVY",
   authDomain: "ponto-eletronico-f35f9.firebaseapp.com",
@@ -131,22 +129,18 @@ const db = getFirestore(app);
 let colaboradores = [];
 let pontos = [];
 
-/* ELEMENTOS */
 const loginBtn = document.getElementById('loginBtn');
 const loginScreen = document.getElementById('loginScreen');
 const mainApp = document.getElementById('mainApp');
 const loginMsg = document.getElementById('loginMsg');
 const rememberCheckbox = document.getElementById('remember');
 const logoutBtn = document.getElementById('logoutBtn');
-
 const colabBody = document.getElementById('colabBody');
 const entradasBody = document.getElementById('entradasBody');
 const saidasBody = document.getElementById('saidasBody');
-const searchInput = document.getElementById('search');
-const baixarBtn = document.getElementById('baixarBtn');
-const limparTodosBtn = document.getElementById('limparTodosBtn');
+const horasBody = document.getElementById('horasBody');
+const totalHorasCell = document.getElementById('totalHoras');
 
-/* LOGIN */
 loginBtn.addEventListener('click', async () => {
   const u = document.getElementById('user').value.trim();
   const p = document.getElementById('pass').value.trim();
@@ -171,10 +165,8 @@ logoutBtn.addEventListener('click', ()=>{
   location.reload(); 
 });
 
-/* RELOGIO */
 setInterval(()=> document.getElementById('clock').textContent=new Date().toLocaleTimeString('pt-BR',{hour12:false}),1000);
 
-/* FIREBASE */
 async function carregarFirebase(){
   const colabs = await getDocs(collection(db,"colaboradores"));
   colaboradores = colabs.docs.map(doc=>({id:doc.id,...doc.data()}));
@@ -184,15 +176,10 @@ async function carregarFirebase(){
   renderAll();
 }
 
-async function salvarFirebase(){
-  for(const c of colaboradores) await setDoc(doc(db,"colaboradores",c.id),c);
-  for(const p of pontos) await setDoc(doc(db,"pontos",p.id),p);
-}
-
-/* RENDER */
 function renderAll(){
   renderColaboradores();
   renderEntradasSaidas();
+  calcularHoras();
 }
 
 function renderColaboradores(){
@@ -232,24 +219,53 @@ function renderEntradasSaidas(){
     tr.querySelector('.del').onclick=()=>excluirPonto(p.id);
     saidasBody.appendChild(tr);
   });
+  calcularHoras();
 }
 
-/* FUNÇÕES */
 async function registrarPonto(idColab,tipo){
   const c=colaboradores.find(x=>x.id===idColab);
   const now=new Date();
-  const p={id:Date.now().toString(),idColab,nome:c.nome,matricula:c.matricula,email:c.email,tipo,data:now.toLocaleDateString('pt-BR'),hora:now.toLocaleTimeString('pt-BR',{hour12:false})};
+  const p={id:Date.now().toString(),idColab,nome:c.nome,matricula:c.matricula,email:c.email,tipo,data:now.toLocaleDateString('pt-BR'),hora:now.toLocaleTimeString('pt-BR',{hour12:false}), horarioISO:now.toISOString()};
   pontos.push(p); 
   renderEntradasSaidas(); 
   await setDoc(doc(db,"pontos",p.id),p);
+}
+
+function calcularHoras(){
+  horasBody.innerHTML='';
+  let dados={};
+  pontos.forEach(p=>{
+    if(!dados[p.nome]) dados[p.nome]={};
+    if(!dados[p.nome][p.data]) dados[p.nome][p.data]=[];
+    dados[p.nome][p.data].push(p);
+  });
+  let totalGeral=0;
+  Object.keys(dados).forEach(nome=>{
+    Object.keys(dados[nome]).forEach(data=>{
+      let reg=dados[nome][data].sort((a,b)=>new Date(a.horarioISO)-new Date(b.horarioISO));
+      let entrada=null,total=0;
+      reg.forEach(r=>{
+        const hora=new Date(r.horarioISO);
+        if(r.tipo==='Entrada') entrada=hora;
+        if(r.tipo==='Saída' && entrada){
+          total+=(hora-entrada)/3600000;
+          entrada=null;
+        }
+      });
+      totalGeral+=total;
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${nome}</td><td>${data}</td><td>${total.toFixed(2)} h</td>`;
+      horasBody.appendChild(tr);
+    });
+  });
+  totalHorasCell.textContent=totalGeral.toFixed(2)+" h";
 }
 
 async function excluirPonto(id){
   if(confirm("Excluir este ponto permanentemente?")){
     pontos=pontos.filter(p=>p.id!==id); 
     renderEntradasSaidas();
-    try { await deleteDoc(doc(db,"pontos",id)); } 
-    catch(err){ console.error(err); }
+    try { await deleteDoc(doc(db,"pontos",id)); } catch(err){ console.error(err); }
   }
 }
 
@@ -271,6 +287,12 @@ baixarBtn.onclick=()=>{
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(colaboradores),'Colaboradores');
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(pontos),'Pontos');
+  const resumo=[];
+  horasBody.querySelectorAll('tr').forEach(r=>{
+    const tds=r.querySelectorAll('td');
+    resumo.push({Funcionário:tds[0].textContent,Data:tds[1].textContent,"Horas Trabalhadas":tds[2].textContent});
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(resumo),'Resumo de Horas');
   XLSX.writeFile(wb,'PontoEletronico.xlsx');
 };
 
@@ -279,10 +301,8 @@ limparTodosBtn.onclick=()=>{
   if(confirm("Limpar todos os pontos?")){ 
     pontos=[]; 
     renderEntradasSaidas(); 
-    pontos.forEach(async p=>await deleteDoc(doc(db,"pontos",p.id)));
   } 
 };
 </script>
-
 </body>
 </html>
