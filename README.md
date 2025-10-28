@@ -3,6 +3,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Ponto Eletrônico Firebase - Entrada e Saída por Dia</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{--blue:#003366;--green:#4CAF50;--yellow:#ff9800;--red:#f44336;}
 body{font-family:Arial,Helvetica,sans-serif;background:#f7f9fc;margin:0}
@@ -53,6 +54,7 @@ h4{margin-bottom:6px;margin-top:12px;}
   </select>
   <input type="time" id="horaInput">
   <button id="registrarBtn" class="add">Registrar Ponto</button>
+  <button id="exportBtn" class="add">Exportar para Excel</button>
 
   <div id="tabelasDias"></div>
 </main>
@@ -74,12 +76,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Dados colaboradores (pode criar dinamicamente no Firebase depois)
+// Dados colaboradores (você pode criar dinamicamente no Firebase)
 const colaboradores=[
   {id:'1',nome:'Carlos',matricula:'001',turno:'Manhã',cargo:'Atendente'},
   {id:'2',nome:'Ana',matricula:'002',turno:'Tarde',cargo:'Caixa'}
 ];
-let pontos=[]; // array local dos pontos
+let pontos=[]; 
 
 const colabBody=document.getElementById('colabBody');
 const colabSelect=document.getElementById('colabSelect');
@@ -182,7 +184,21 @@ function editarPonto(ponto){
   }
 }
 
+// EXPORTAR PARA EXCEL
+function exportarExcel(){
+  const wb=XLSX.utils.book_new();
+  const diasSemana=['Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  diasSemana.forEach(dia=>{
+    ['Entrada','Saída'].forEach(tipo=>{
+      const dados=pontos.filter(p=>p.dia===dia && p.tipo===tipo).map(p=>({Nome:p.nome,Hora:p.hora}));
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(dados),`${dia} ${tipo}`);
+    });
+  });
+  XLSX.writeFile(wb,'PontoEletronico.xlsx');
+}
+
 document.getElementById('registrarBtn').onclick=registrarPonto;
+document.getElementById('exportBtn').onclick=exportarExcel;
 
 renderColaboradores();
 carregarPontos();
