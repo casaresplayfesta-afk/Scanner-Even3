@@ -1,208 +1,208 @@
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ponto Eletrônico Firebase - Entrada e Saída por Dia</title>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ponto Eletrônico Corporativo</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-:root{--blue:#003366;--green:#4CAF50;--yellow:#ff9800;--red:#f44336;}
-body{font-family:Arial,Helvetica,sans-serif;background:#f7f9fc;margin:0}
-header{background:var(--blue);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.logo{font-weight:700}
-#clock{font-weight:700}
-main{padding:18px;max-width:1100px;margin:18px auto}
-table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,0.06);margin-bottom:18px;}
-th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;font-size:14px}
-th{background:#fafafa;font-weight:700}
-tr:hover td{background:#fbfbfb}
-.add{background:#4CAF50;color:#fff;padding:6px 12px;border:none;border-radius:5px;cursor:pointer}
-.edit{background:#2196F3;color:#fff;padding:4px 8px;border:none;border-radius:5px;cursor:pointer}
-.del{background:#f44336;color:#fff;padding:4px 8px;border:none;border-radius:5px;cursor:pointer}
-h4{margin-bottom:6px;margin-top:12px;}
-.flex-row{display:flex;gap:8px;align-items:center}
+body { font-family: Arial, sans-serif; background:#e0f7fa; margin:0; padding:20px; }
+.container { background:white; padding:25px; border-radius:15px; box-shadow:0 6px 15px rgba(0,0,0,0.3); max-width:900px; margin:auto 0 20px auto; }
+h2 { color:#00796b; text-align:center; margin-bottom:15px; }
+button, select, input { padding:8px 12px; margin:5px; font-size:14px; border-radius:8px; border:none; cursor:pointer; }
+button:hover { opacity:0.85; }
+#entrada { background-color:#4CAF50; color:white; }
+#saida { background-color:#f44336; color:white; }
+#inicioIntervalo { background-color:#FF9800; color:white; }
+#fimIntervalo { background-color:#9C27B0; color:white; }
+#exportar { background-color:#2196F3; color:white; }
+#limpar { background-color:#607D8B; color:white; }
+table { width:100%; margin-top:15px; border-collapse: collapse; font-size:14px; }
+th, td { border:1px solid #ddd; padding:8px; text-align:center; }
+th { background-color:#b2dfdb; color:#004d40; }
+td { font-weight:500; }
+canvas { margin-top:25px; }
+.flex { display:flex; flex-wrap:wrap; justify-content:center; }
 </style>
 </head>
 <body>
+<div class="container">
+<h2>Ponto Eletrônico Corporativo</h2>
+<div class="flex">
+<select id="funcionario"></select>
+<input type="text" id="novoFuncionario" placeholder="Novo funcionário">
+<button id="adicionarFuncionario">Adicionar Funcionário</button>
+</div>
+<div class="flex">
+<button id="entrada">Entrada</button>
+<button id="saida">Saída</button>
+<button id="inicioIntervalo">Início Intervalo</button>
+<button id="fimIntervalo">Fim Intervalo</button>
+<button id="exportar">Exportar CSV</button>
+<button id="limpar">Limpar Registros</button>
+</div>
+<table>
+<thead>
+<tr>
+<th>Funcionário</th>
+<th>Data</th>
+<th>Tipo</th>
+<th>Horário</th>
+<th>Horas Trabalhadas</th>
+</tr>
+</thead>
+<tbody id="tabelaPonto"></tbody>
+<tfoot>
+<tr>
+<td colspan="4"><strong>Total de Horas</strong></td>
+<td id="totalHoras">0</td>
+</tr>
+</tfoot>
+</table>
+</div>
+<div class="container">
+<h2>Dashboard Corporativo</h2>
+<canvas id="chartDias"></canvas>
+<canvas id="chartSemana"></canvas>
+</div>
+<script>
+const funcionarioSelect = document.getElementById('funcionario');
+const tabela = document.getElementById('tabelaPonto');
+const totalHorasCell = document.getElementById('totalHoras');
 
-<header>
-  <div class="logo">Ponto Eletrônico</div>
-  <div id="clock">--:--:--</div>
-</header>
-
-<main>
-  <h3>Colaboradores</h3>
-  <table id="colabTable">
-    <thead>
-      <tr><th>#</th><th>Nome</th><th>Matrícula</th><th>Turno/Cargo</th></tr>
-    </thead>
-    <tbody id="colabBody"></tbody>
-  </table>
-
-  <h3>Registrar Ponto</h3>
-  <select id="colabSelect"></select>
-  <select id="tipoSelect">
-    <option value="Entrada">Entrada</option>
-    <option value="Saída">Saída</option>
-  </select>
-  <select id="diaSelect">
-    <option value="Segunda">Segunda</option>
-    <option value="Terça">Terça</option>
-    <option value="Quarta">Quarta</option>
-    <option value="Quinta">Quinta</option>
-    <option value="Sexta">Sexta</option>
-    <option value="Sábado">Sábado</option>
-  </select>
-  <input type="time" id="horaInput">
-  <button id="registrarBtn" class="add">Registrar Ponto</button>
-  <button id="exportBtn" class="add">Exportar para Excel</button>
-
-  <div id="tabelasDias"></div>
-</main>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
-import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
-
-// Config Firebase
-const firebaseConfig = {
-  apiKey: "COLOQUE_SUA_APIKEY_AQUI",
-  authDomain: "SEU_PROJETO.firebaseapp.com",
-  projectId: "SEU_PROJETO",
-  storageBucket: "SEU_PROJETO.appspot.com",
-  messagingSenderId: "SEU_ID",
-  appId: "SEU_APPID"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-// Dados colaboradores (você pode criar dinamicamente no Firebase)
-const colaboradores=[
-  {id:'1',nome:'Carlos',matricula:'001',turno:'Manhã',cargo:'Atendente'},
-  {id:'2',nome:'Ana',matricula:'002',turno:'Tarde',cargo:'Caixa'}
-];
-let pontos=[]; 
-
-const colabBody=document.getElementById('colabBody');
-const colabSelect=document.getElementById('colabSelect');
-const diaSelect=document.getElementById('diaSelect');
-const tipoSelect=document.getElementById('tipoSelect');
-const horaInput=document.getElementById('horaInput');
-const tabelasDiasDiv=document.getElementById('tabelasDias');
-
-function renderColaboradores(){
-  colabBody.innerHTML='';
-  colabSelect.innerHTML='';
-  colaboradores.forEach((c,i)=>{
-    colabBody.innerHTML+=`<tr><td>${i+1}</td><td>${c.nome}</td><td>${c.matricula}</td><td>${c.turno}/${c.cargo}</td></tr>`;
-    colabSelect.innerHTML+=`<option value="${c.id}">${c.nome}</option>`;
-  });
+function carregarFuncionarios() {
+let funcionarios = JSON.parse(localStorage.getItem('funcionarios')) || [];
+funcionarioSelect.innerHTML = '';
+funcionarios.forEach(f => {
+const option = document.createElement('option');
+option.value = f;
+option.text = f;
+funcionarioSelect.appendChild(option);
+});
+if(funcionarios.length === 0) {
+funcionarioSelect.innerHTML = '<option value="">Sem funcionários</option>';
+}
 }
 
-// Carregar pontos do Firebase
-async function carregarPontos(){
-  const pts = await getDocs(collection(db,"pontos"));
-  pontos = pts.docs.map(d=>({id:d.id,...d.data()}));
-  atualizarTabelasDias();
+document.getElementById('adicionarFuncionario').addEventListener('click', () => {
+const nome = document.getElementById('novoFuncionario').value.trim();
+if(!nome) return alert('Digite um nome!');
+let funcionarios = JSON.parse(localStorage.getItem('funcionarios')) || [];
+if(!funcionarios.includes(nome)) {
+funcionarios.push(nome);
+localStorage.setItem('funcionarios', JSON.stringify(funcionarios));
+document.getElementById('novoFuncionario').value = '';
+carregarFuncionarios();
+} else {
+alert('Funcionário já existe!');
+}
+});
+
+function registrarPonto(tipo) {
+const funcionario = funcionarioSelect.value;
+if(!funcionario) return alert('Selecione um funcionário!');
+const agora = new Date();
+let registros = JSON.parse(localStorage.getItem('registros')) || [];
+registros.push({ funcionario, tipo, horario: agora.toLocaleTimeString(), data: agora.toLocaleDateString(), horarioISO: agora.toISOString() });
+localStorage.setItem('registros', JSON.stringify(registros));
+atualizarTabela();
 }
 
-// Salvar ponto no Firebase
-async function salvarPontoFirebase(ponto){
-  await setDoc(doc(db,"pontos",ponto.id),ponto);
+function calcularHorasPorFuncionario() {
+let registros = JSON.parse(localStorage.getItem('registros')) || [];
+let dados = {};
+registros.forEach(r => {
+if(!dados[r.funcionario]) dados[r.funcionario] = {};
+if(!dados[r.funcionario][r.data]) dados[r.funcionario][r.data] = [];
+dados[r.funcionario][r.data].push(r);
+});
+let totalGeral = 0;
+let horasFuncionario = {};
+Object.keys(dados).forEach(f => {
+horasFuncionario[f] = 0;
+Object.keys(dados[f]).forEach(d => {
+let diaRegistros = dados[f][d];
+let entrada = null, inicioIntervalo = null, total = 0;
+diaRegistros.forEach(r => {
+let hora = new Date(r.horarioISO);
+if(r.tipo==='Entrada') entrada=hora;
+if(r.tipo==='Início Intervalo') inicioIntervalo=hora;
+if(r.tipo==='Fim Intervalo'&&inicioIntervalo){
+total+=(hora-inicioIntervalo)/3600000;
+inicioIntervalo=null;
+}
+if(r.tipo==='Saída'&&entrada){
+if(inicioIntervalo){
+total+=(hora-inicioIntervalo)/3600000;
+inicioIntervalo=null;
+} else total+=(hora-entrada)/3600000;
+entrada=null;
+}
+});
+horasFuncionario[f]+=total;
+totalGeral+=total;
+});
+});
+return { totalGeral: totalGeral.toFixed(2), horasFuncionario };
 }
 
-// Excluir ponto Firebase
-async function excluirPontoFirebase(id){
-  await deleteDoc(doc(db,"pontos",id));
+function atualizarTabela() {
+tabela.innerHTML = '';
+let registros = JSON.parse(localStorage.getItem('registros')) || [];
+let { totalGeral } = calcularHorasPorFuncionario();
+registros.forEach(r => {
+const linha = document.createElement('tr');
+const horas = totalGeral;
+linha.innerHTML = `<td>${r.funcionario}</td><td>${r.data}</td><td>${r.tipo}</td><td>${r.horario}</td><td>${horas}</td>`;
+tabela.appendChild(linha);
+});
+totalHorasCell.innerText = totalGeral;
+atualizarGraficos();
 }
 
-function atualizarTabelasDias(){
-  tabelasDiasDiv.innerHTML='';
-  const diasSemana=['Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
-  diasSemana.forEach(dia=>{
-    const divDia=document.createElement('div');
-    divDia.innerHTML=`<h4>${dia}</h4>`;
-    
-    // Tabela Entrada
-    const tableEntrada=document.createElement('table');
-    tableEntrada.innerHTML=`<thead><tr><th>#</th><th>Nome</th><th>Hora</th><th>Ações</th></tr></thead><tbody></tbody>`;
-    const tbodyEntrada=tableEntrada.querySelector('tbody');
-    pontos.filter(p=>p.dia===dia && p.tipo==='Entrada').forEach((p,i)=>{
-      const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${i+1}</td><td>${p.nome}</td><td>${p.hora}</td><td><button class="edit">Editar</button> <button class="del">Excluir</button></td>`;
-      tr.querySelector('.edit').onclick=()=>editarPonto(p);
-      tr.querySelector('.del').onclick=async ()=>{
-        pontos=pontos.filter(pt=>pt.id!==p.id);
-        await excluirPontoFirebase(p.id);
-        atualizarTabelasDias();
-      };
-      tbodyEntrada.appendChild(tr);
-    });
-    divDia.appendChild(document.createTextNode('Entrada'));
-    divDia.appendChild(tableEntrada);
-
-    // Tabela Saída
-    const tableSaida=document.createElement('table');
-    tableSaida.innerHTML=`<thead><tr><th>#</th><th>Nome</th><th>Hora</th><th>Ações</th></tr></thead><tbody></tbody>`;
-    const tbodySaida=tableSaida.querySelector('tbody');
-    pontos.filter(p=>p.dia===dia && p.tipo==='Saída').forEach((p,i)=>{
-      const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${i+1}</td><td>${p.nome}</td><td>${p.hora}</td><td><button class="edit">Editar</button> <button class="del">Excluir</button></td>`;
-      tr.querySelector('.edit').onclick=()=>editarPonto(p);
-      tr.querySelector('.del').onclick=async ()=>{
-        pontos=pontos.filter(pt=>pt.id!==p.id);
-        await excluirPontoFirebase(p.id);
-        atualizarTabelasDias();
-      };
-      tbodySaida.appendChild(tr);
-    });
-    divDia.appendChild(document.createTextNode('Saída'));
-    divDia.appendChild(tableSaida);
-
-    tabelasDiasDiv.appendChild(divDia);
-  });
+document.getElementById('entrada').addEventListener('click', ()=>registrarPonto('Entrada'));
+document.getElementById('saida').addEventListener('click', ()=>registrarPonto('Saída'));
+document.getElementById('inicioIntervalo').addEventListener('click', ()=>registrarPonto('Início Intervalo'));
+document.getElementById('fimIntervalo').addEventListener('click', ()=>registrarPonto('Fim Intervalo'));
+document.getElementById('exportar').addEventListener('click', ()=>{
+let registros = JSON.parse(localStorage.getItem('registros')) || [];
+if(registros.length===0){ alert('Nenhum registro para exportar!'); return; }
+let csv='Funcionário,Data,Tipo,Horário,Horas Trabalhadas\n';
+registros.forEach(r=>{
+const { totalGeral } = calcularHorasPorFuncionario();
+csv+=`${r.funcionario},${r.data},${r.tipo},${r.horario},${totalGeral}\n`;
+});
+const blob=new Blob([csv],{type:'text/csv'});
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');
+a.href=url;
+a.download='registros_ponto.csv';
+a.click();
+URL.revokeObjectURL(url);
+});
+document.getElementById('limpar').addEventListener('click', ()=>{
+if(confirm('Deseja realmente limpar todos os registros?')){
+localStorage.removeItem('registros');
+atualizarTabela();
 }
+});
 
-async function registrarPonto(){
-  const colabId=colabSelect.value;
-  const tipo=tipoSelect.value;
-  const dia=diaSelect.value;
-  const hora=horaInput.value || new Date().toLocaleTimeString('pt-BR',{hour12:false});
-  const colaborador=colaboradores.find(c=>c.id===colabId);
-  const ponto={id:Date.now().toString(),nome:colaborador.nome,tipo,dia,hora};
-  pontos.push(ponto);
-  await salvarPontoFirebase(ponto);
-  atualizarTabelasDias();
+window.onload = ()=>{ carregarFuncionarios(); atualizarTabela(); };
+
+// Gráficos corporativos
+let chartDias=null;
+let chartSemana=null;
+function atualizarGraficos(){
+let registros = JSON.parse(localStorage.getItem('registros')) || [];
+let { horasFuncionario } = calcularHorasPorFuncionario();
+const labels = Object.keys(horasFuncionario);
+const data = Object.values(horasFuncionario);
+if(chartDias) chartDias.destroy();
+const ctxDias=document.getElementById('chartDias').getContext('2d');
+chartDias = new Chart(ctxDias,{type:'bar',data:{labels, datasets:[{label:'Horas por Funcionário',data, backgroundColor:'#4CAF50'}]}, options:{responsive:true, plugins:{legend:{display:false}}}});
+if(chartSemana) chartSemana.destroy();
+const ctxSemana=document.getElementById('chartSemana').getContext('2d');
+chartSemana = new Chart(ctxSemana,{type:'line', data:{labels, datasets:[{label:'Horas Semanais', data, borderColor:'#2196F3', fill:false} ] }, options:{responsive:true, plugins:{legend:{display:false}}}});
 }
-
-function editarPonto(ponto){
-  const novaHora=prompt("Digite nova hora (HH:MM)",ponto.hora);
-  if(novaHora){
-    ponto.hora=novaHora;
-    salvarPontoFirebase(ponto);
-    atualizarTabelasDias();
-  }
-}
-
-// EXPORTAR PARA EXCEL
-function exportarExcel(){
-  const wb=XLSX.utils.book_new();
-  const diasSemana=['Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
-  diasSemana.forEach(dia=>{
-    ['Entrada','Saída'].forEach(tipo=>{
-      const dados=pontos.filter(p=>p.dia===dia && p.tipo===tipo).map(p=>({Nome:p.nome,Hora:p.hora}));
-      XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(dados),`${dia} ${tipo}`);
-    });
-  });
-  XLSX.writeFile(wb,'PontoEletronico.xlsx');
-}
-
-document.getElementById('registrarBtn').onclick=registrarPonto;
-document.getElementById('exportBtn').onclick=exportarExcel;
-
-renderColaboradores();
-carregarPontos();
-setInterval(()=>document.getElementById('clock').textContent=new Date().toLocaleTimeString('pt-BR',{hour12:false}),1000);
 </script>
 </body>
 </html>
